@@ -17,6 +17,7 @@ export interface GenericNodePanelProps {
   title: string;
   onClose: () => void;
   onAdd: (data: GenericNodeData) => void;
+  onRemove?: () => void;
   initialData?: Partial<GenericNodeData>;
 }
 
@@ -96,6 +97,7 @@ export default function GenericNodePanel({
   title,
   onClose,
   onAdd,
+  onRemove,
   initialData,
 }: GenericNodePanelProps) {
   const [provedor, setProvedor] = useState(initialData?.provedor ?? "");
@@ -298,24 +300,31 @@ export default function GenericNodePanel({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-[12px] px-[20px] py-[14px] border-t border-[#e8eaec] shrink-0 bg-white">
-        <button
-          onClick={onClose}
-          className="rounded-[8px] border border-[#e8eaec] px-[16px] py-[9px] text-sm font-semibold text-[#343b44] hover:bg-gray-50 transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={handleAdd}
-          disabled={!canAdd}
-          className={`rounded-[8px] px-[16px] py-[9px] text-sm font-semibold transition-colors ${
-            canAdd
-              ? "bg-[#2724ed] text-white hover:opacity-90 cursor-pointer"
-              : "bg-[#f8f8f9] text-[#9ca3af] border border-[#e8eaec] cursor-not-allowed"
-          }`}
-        >
-          Adicionar
-        </button>
+      <div className="flex items-center justify-between px-[20px] py-[14px] border-t border-[#e8eaec] shrink-0 bg-white">
+        {onRemove ? (
+          <button type="button" onClick={onRemove} className="text-sm font-semibold text-[#d92d20] hover:opacity-80 transition-opacity">
+            Remover nó
+          </button>
+        ) : <div />}
+        <div className="flex items-center gap-[12px]">
+          <button
+            onClick={onClose}
+            className="rounded-[8px] border border-[#e8eaec] px-[16px] py-[9px] text-sm font-semibold text-[#343b44] hover:bg-gray-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleAdd}
+            disabled={!canAdd}
+            className={`rounded-[8px] px-[16px] py-[9px] text-sm font-semibold transition-colors ${
+              canAdd
+                ? "bg-[#2724ed] text-white hover:opacity-90 cursor-pointer"
+                : "bg-[#f8f8f9] text-[#9ca3af] border border-[#e8eaec] cursor-not-allowed"
+            }`}
+          >
+            Adicionar
+          </button>
+        </div>
       </div>
     </div>
   );

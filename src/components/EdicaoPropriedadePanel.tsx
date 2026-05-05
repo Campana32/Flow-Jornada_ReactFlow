@@ -10,6 +10,7 @@ export interface EdicaoPropriedadeNodeData {
 interface EdicaoPropriedadePanelProps {
   onClose: () => void;
   onAdd: (data: EdicaoPropriedadeNodeData) => void;
+  onRemove?: () => void;
 }
 
 type TipoProp = "Padrão" | "String" | "Booleano" | "Lista" | "Inteiro";
@@ -198,7 +199,7 @@ function PropRow({
 }
 
 /* ── Main component ── */
-export default function EdicaoPropriedadePanel({ onClose, onAdd }: EdicaoPropriedadePanelProps) {
+export default function EdicaoPropriedadePanel({ onClose, onAdd, onRemove }: EdicaoPropriedadePanelProps) {
   const [nome, setNome] = useState("");
   const [secaoAberta, setSecaoAberta] = useState(true);
   const [rows, setRows] = useState<PropertyRow[]>([makeRow()]);
@@ -307,23 +308,30 @@ export default function EdicaoPropriedadePanel({ onClose, onAdd }: EdicaoProprie
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-[8px] px-[24px] py-[12px] border-t border-[#e8eaec] shrink-0 bg-white">
-        <button
-          onClick={onClose}
-          className="rounded-[8px] border border-[#e8eaec] bg-[#fcfcfc] px-[12px] py-[8px] text-sm font-semibold text-[#343b44] hover:bg-gray-50 transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={handleAdd}
-          disabled={!canAdd}
-          className={`rounded-[8px] px-[12px] py-[8px] text-sm font-semibold text-white transition-colors ${
-            canAdd ? "hover:opacity-90 cursor-pointer" : "opacity-50 cursor-not-allowed"
-          }`}
-          style={{ background: COLOR }}
-        >
-          Adicionar
-        </button>
+      <div className="flex items-center justify-between px-[24px] py-[12px] border-t border-[#e8eaec] shrink-0 bg-white">
+        {onRemove ? (
+          <button type="button" onClick={onRemove} className="text-sm font-semibold text-[#d92d20] hover:opacity-80 transition-opacity">
+            Remover nó
+          </button>
+        ) : <div />}
+        <div className="flex items-center gap-[8px]">
+          <button
+            onClick={onClose}
+            className="rounded-[8px] border border-[#e8eaec] bg-[#fcfcfc] px-[12px] py-[8px] text-sm font-semibold text-[#343b44] hover:bg-gray-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleAdd}
+            disabled={!canAdd}
+            className={`rounded-[8px] px-[12px] py-[8px] text-sm font-semibold text-white transition-colors ${
+              canAdd ? "hover:opacity-90 cursor-pointer" : "opacity-50 cursor-not-allowed"
+            }`}
+            style={{ background: COLOR }}
+          >
+            Adicionar
+          </button>
+        </div>
       </div>
     </div>
   );

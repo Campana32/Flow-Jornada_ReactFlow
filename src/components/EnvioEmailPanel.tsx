@@ -16,6 +16,7 @@ export interface EmailNodeData {
 interface EnvioEmailPanelProps {
   onClose: () => void;
   onAdd: (data: EmailNodeData) => void;
+  onRemove?: () => void;
 }
 
 /* ── Icons ── */
@@ -133,7 +134,7 @@ const VARIANT_COLORS = ["#5290f5", "#3cca71"] as const;
 const VARIANT_LABELS = ["Variante A", "Variante B"] as const;
 
 /* ── Main component ── */
-export default function EnvioEmailPanel({ onClose, onAdd }: EnvioEmailPanelProps) {
+export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmailPanelProps) {
   const [nome, setNome] = useState("");
   const [provedor, setProvedor] = useState("");
   const [naoPerturbe, setNaoPerturbe] = useState(true);
@@ -449,7 +450,13 @@ export default function EnvioEmailPanel({ onClose, onAdd }: EnvioEmailPanelProps
       </div>
 
       {/* ── Footer ── */}
-      <div className="flex items-center justify-end gap-[12px] px-[20px] py-[14px] border-t border-[#e8eaec] shrink-0 bg-white">
+      <div className="flex items-center justify-between px-[20px] py-[14px] border-t border-[#e8eaec] shrink-0 bg-white">
+        {onRemove ? (
+          <button type="button" onClick={onRemove} className="text-sm font-semibold text-[#d92d20] hover:opacity-80 transition-opacity">
+            Remover nó
+          </button>
+        ) : <div />}
+        <div className="flex items-center gap-[12px]">
         <button
           onClick={onClose}
           className="rounded-[8px] border border-[#e8eaec] px-[16px] py-[9px] text-sm font-semibold text-[#343b44] hover:bg-gray-50 transition-colors"
@@ -467,6 +474,7 @@ export default function EnvioEmailPanel({ onClose, onAdd }: EnvioEmailPanelProps
         >
           Adicionar
         </button>
+        </div>
       </div>
     </div>
   );

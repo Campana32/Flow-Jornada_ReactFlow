@@ -312,6 +312,10 @@ export default function Canvas() {
     setEditingNodeId(null);
   };
 
+  const removeHandler = editingNodeId
+    ? () => { handleRemoveNode(editingNodeId); handleClosePanel(); }
+    : undefined;
+
   const handleAdd = (segmentacao: string) => {
     setSavedSegmentacao(segmentacao);
     setActivePanel("none");
@@ -697,7 +701,7 @@ export default function Canvas() {
         <AdicionarNoPanel onClose={handleClosePanel} onNodeSelect={handleNodeSelect} />
       )}
       {activePanel === "emailConfig" && (
-        <EnvioEmailPanel onClose={handleClosePanel} onAdd={handleEmailAdd} />
+        <EnvioEmailPanel onClose={handleClosePanel} onAdd={handleEmailAdd} onRemove={removeHandler} />
       )}
       {activePanel === "smsConfig" && (
         <GenericNodePanel
@@ -706,6 +710,7 @@ export default function Canvas() {
           title={nodeLabels.sms}
           onClose={handleClosePanel}
           onAdd={handleGenericEnvioAdd("sms")}
+          onRemove={removeHandler}
         />
       )}
       {activePanel === "whatsappConfig" && (
@@ -715,6 +720,7 @@ export default function Canvas() {
           title={nodeLabels.whatsapp}
           onClose={handleClosePanel}
           onAdd={handleGenericEnvioAdd("whatsapp")}
+          onRemove={removeHandler}
         />
       )}
       {activePanel === "mobilePushConfig" && (
@@ -724,6 +730,7 @@ export default function Canvas() {
           title={nodeLabels.mobilePush}
           onClose={handleClosePanel}
           onAdd={handleGenericEnvioAdd("mobilePush")}
+          onRemove={removeHandler}
         />
       )}
       {activePanel === "webPushConfig" && (
@@ -733,25 +740,26 @@ export default function Canvas() {
           title={nodeLabels.webPush}
           onClose={handleClosePanel}
           onAdd={handleGenericEnvioAdd("webPush")}
+          onRemove={removeHandler}
         />
       )}
       {activePanel === "edicaoConfig" && (
-        <EdicaoPropriedadePanel onClose={handleClosePanel} onAdd={handleEdicaoAdd} />
+        <EdicaoPropriedadePanel onClose={handleClosePanel} onAdd={handleEdicaoAdd} onRemove={removeHandler} />
       )}
       {activePanel === "webhooksConfig" && (
-        <WebhooksPanel onClose={handleClosePanel} onAdd={handleWebhooksAdd} />
+        <WebhooksPanel onClose={handleClosePanel} onAdd={handleWebhooksAdd} onRemove={removeHandler} />
       )}
       {activePanel === "desisncreverConfig" && (
-        <DesisncreverPanel onClose={handleClosePanel} onAdd={handleDesisncreverAdd} />
+        <DesisncreverPanel onClose={handleClosePanel} onAdd={handleDesisncreverAdd} onRemove={removeHandler} />
       )}
       {activePanel === "jornadaConfig" && (
-        <AdicionarJornadaPanel onClose={handleClosePanel} onAdd={handleJornadaAdd} />
+        <AdicionarJornadaPanel onClose={handleClosePanel} onAdd={handleJornadaAdd} onRemove={removeHandler} />
       )}
       {activePanel === "segmentacaoConfig" && (
-        <SegmentacaoNoPanel onClose={handleClosePanel} onAdd={handleSegmentacaoAdd} />
+        <SegmentacaoNoPanel onClose={handleClosePanel} onAdd={handleSegmentacaoAdd} onRemove={removeHandler} />
       )}
       {activePanel === "testeABConfig" && (
-        <TesteABPanel onClose={handleClosePanel} onAdd={handleTesteABAdd} />
+        <TesteABPanel onClose={handleClosePanel} onAdd={handleTesteABAdd} onRemove={removeHandler} />
       )}
 
       {/* ── Zoom control (outside transform) ── */}

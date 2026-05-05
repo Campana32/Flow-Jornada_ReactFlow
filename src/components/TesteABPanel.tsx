@@ -10,6 +10,7 @@ export interface TesteABNodeData {
 interface TesteABPanelProps {
   onClose: () => void;
   onAdd: (data: TesteABNodeData) => void;
+  onRemove?: () => void;
 }
 
 const icons = {
@@ -32,7 +33,7 @@ const icons = {
 
 const COLOR = "#fb7185";
 
-export default function TesteABPanel({ onClose, onAdd }: TesteABPanelProps) {
+export default function TesteABPanel({ onClose, onAdd, onRemove }: TesteABPanelProps) {
   const [varianteA, setVarianteA] = useState(50);
   const [varianteB, setVarianteB] = useState(50);
 
@@ -130,19 +131,26 @@ export default function TesteABPanel({ onClose, onAdd }: TesteABPanelProps) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-[12px] px-[20px] py-[14px] border-t border-[#e8eaec] shrink-0 bg-white">
-        <button
-          onClick={onClose}
-          className="rounded-[8px] border border-[#e8eaec] px-[16px] py-[9px] text-sm font-semibold text-[#343b44] hover:bg-gray-50 transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={handleAdd}
-          className="rounded-[8px] px-[16px] py-[9px] text-sm font-semibold transition-colors bg-[#2724ed] text-white hover:opacity-90 cursor-pointer"
-        >
-          Adicionar
-        </button>
+      <div className="flex items-center justify-between px-[20px] py-[14px] border-t border-[#e8eaec] shrink-0 bg-white">
+        {onRemove ? (
+          <button type="button" onClick={onRemove} className="text-sm font-semibold text-[#d92d20] hover:opacity-80 transition-opacity">
+            Remover nó
+          </button>
+        ) : <div />}
+        <div className="flex items-center gap-[12px]">
+          <button
+            onClick={onClose}
+            className="rounded-[8px] border border-[#e8eaec] px-[16px] py-[9px] text-sm font-semibold text-[#343b44] hover:bg-gray-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleAdd}
+            className="rounded-[8px] px-[16px] py-[9px] text-sm font-semibold transition-colors bg-[#2724ed] text-white hover:opacity-90 cursor-pointer"
+          >
+            Adicionar
+          </button>
+        </div>
       </div>
     </div>
   );
