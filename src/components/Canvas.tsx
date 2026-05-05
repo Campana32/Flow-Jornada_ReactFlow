@@ -385,7 +385,7 @@ export default function Canvas() {
       color: nodeColors.edicaoProp,
       icon: nodeIcons.edicaoProp,
       label: nodeLabels.edicaoProp,
-      fields: [{ key: "Propriedade:", value: raw.propriedade || "—" }],
+      fields: [{ key: "Propriedade:", value: raw.nome || "—" }],
     }, "edicaoProp");
   };
 
