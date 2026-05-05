@@ -84,7 +84,7 @@ function DataRow({ label, value }: { label: string; value: string }) {
 
 export default function EmailNode({ data, onEdit }: EmailNodeProps) {
   const [expanded, setExpanded] = useState(true);
-  const id = shortId(data.provedor);
+  const id = shortId(data.remetente || data.tipoMensagem);
 
   const tipoLabel = data.tipoMensagem === "unica" ? "Mensagem única" : "Teste A/B";
 

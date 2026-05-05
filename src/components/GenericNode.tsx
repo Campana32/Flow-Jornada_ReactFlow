@@ -13,6 +13,7 @@ export interface GenericNodeData {
   icon: React.ReactNode;
   label: string;
   fields: GenericNodeFieldData[];
+  aguardarData?: { quantidade: number; unidade: "Minutos" | "Horas" | "Dias" };
 }
 
 interface GenericNodeProps {

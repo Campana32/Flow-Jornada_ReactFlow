@@ -19,8 +19,8 @@ import WebhooksPanel from "./WebhooksPanel";
 import type { WebhooksNodeData } from "./WebhooksPanel";
 import DesisncreverPanel from "./DesisncreverPanel";
 import type { DesisncreverNodeData } from "./DesisncreverPanel";
-import AguardarPanel from "./AguardarPanel";
-import type { AguardarNodeData } from "./AguardarPanel";
+import AguardarCardNode from "./AguardarCardNode";
+import type { AguardarNodeData } from "./AguardarCardNode";
 import AdicionarJornadaPanel from "./AdicionarJornadaPanel";
 import type { AdicionarJornadaNodeData } from "./AdicionarJornadaPanel";
 import SegmentacaoNoPanel from "./SegmentacaoNoPanel";
@@ -45,7 +45,6 @@ type ActivePanel =
   | "edicaoConfig"
   | "webhooksConfig"
   | "desisncreverConfig"
-  | "aguardarConfig"
   | "jornadaConfig"
   | "segmentacaoConfig"
   | "testeABConfig";
@@ -218,6 +217,7 @@ export default function Canvas() {
   const [savedSegmentacao, setSavedSegmentacao] = useState<string>("");
   const [savedNodes, setSavedNodes] = useState<SavedNode[]>([]);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [pendingAguardar, setPendingAguardar] = useState(false);
 
   /* ── Viewport state ── */
   const [viewport, setViewport] = useState({ zoom: 1, pan: { x: 0, y: 0 } });
@@ -318,6 +318,11 @@ export default function Canvas() {
   };
 
   const handleNodeSelect = (type: string) => {
+    if (type === "aguardar") {
+      setPendingAguardar(true);
+      setActivePanel("none");
+      return;
+    }
     const panelMap: Record<string, ActivePanel> = {
       email: "emailConfig",
       sms: "smsConfig",
@@ -327,7 +332,6 @@ export default function Canvas() {
       edicaoProp: "edicaoConfig",
       webhooks: "webhooksConfig",
       desisncrever: "desisncreverConfig",
-      aguardar: "aguardarConfig",
       jornadaOutra: "jornadaConfig",
       segmentacao: "segmentacaoConfig",
       testeAB: "testeABConfig",
@@ -405,14 +409,44 @@ export default function Canvas() {
     }, "desisncrever");
   };
 
-  const handleAguardarAdd = (raw: AguardarNodeData) => {
-    pushOrUpdateNode({
-      type: "aguardar",
-      color: nodeColors.aguardar,
-      icon: nodeIcons.aguardar,
-      label: nodeLabels.aguardar,
-      fields: [{ key: "Duração:", value: `${raw.quantidade} ${raw.unidade}` }],
-    }, "aguardar");
+  const handleAguardarConfirm = (raw: AguardarNodeData) => {
+    setSavedNodes((prev) => [
+      ...prev,
+      {
+        id: uid(),
+        panelType: "aguardar",
+        data: {
+          type: "aguardar",
+          color: nodeColors.aguardar,
+          icon: nodeIcons.aguardar,
+          label: nodeLabels.aguardar,
+          fields: [{ key: "Duração:", value: `${raw.quantidade} ${raw.unidade}` }],
+          aguardarData: raw,
+        },
+      },
+    ]);
+    setPendingAguardar(false);
+  };
+
+  const handleAguardarUpdate = (nodeId: string, raw: AguardarNodeData) => {
+    setSavedNodes((prev) =>
+      prev.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                fields: [{ key: "Duração:", value: `${raw.quantidade} ${raw.unidade}` }],
+                aguardarData: raw,
+              },
+            }
+          : n
+      )
+    );
+  };
+
+  const handleRemoveNode = (nodeId: string) => {
+    setSavedNodes((prev) => prev.filter((n) => n.id !== nodeId));
   };
 
   const handleJornadaAdd = (raw: AdicionarJornadaNodeData) => {
@@ -445,16 +479,46 @@ export default function Canvas() {
     }, "testeAB");
   };
 
-  /* ── Node positioning ── */
+  /* ── Node positioning (cumulative, respects per-node widths) ── */
   const NODE_START = 500;
-  const NODE_STEP = 270;
-  const NODE_WIDTH = 260;
+  const NODE_GAP = 64;   // space between nodes (for connector line + add button)
+  const NODE_WIDTH = 260; // default GenericNode width
+  const AGUARDAR_WIDTH = 352; // badge(44) - overlap(16) + bar(324) = 352
   const topTransform = "translateY(-50%) translateY(41px)";
   const totalNodes = savedNodes.length;
 
-  const getNodeLeft = (idx: number) => NODE_START + idx * NODE_STEP;
-  const getConnectorLeft = (idx: number) => NODE_START + idx * NODE_STEP + NODE_WIDTH;
-  const getConnectorWidth = () => NODE_STEP - NODE_WIDTH;
+  const nodeWidthOf = (node: SavedNode) =>
+    node.data.type === "aguardar" ? AGUARDAR_WIDTH : NODE_WIDTH;
+
+  // Build cumulative left positions for each saved node
+  const nodePositions: number[] = [];
+  {
+    let x = NODE_START;
+    for (const node of savedNodes) {
+      nodePositions.push(x);
+      x += nodeWidthOf(node) + NODE_GAP;
+    }
+  }
+
+  const getNodeLeft = (idx: number) => nodePositions[idx] ?? NODE_START;
+
+  // Left edge of connector after node idx
+  const getConnectorLeft = (idx: number) =>
+    getNodeLeft(idx) + nodeWidthOf(savedNodes[idx]);
+
+  // Right edge = start of next node (or pending aguardar position)
+  const pendingAguardarLeft = nodePositions.length > 0
+    ? nodePositions[nodePositions.length - 1] + nodeWidthOf(savedNodes[savedNodes.length - 1]) + NODE_GAP
+    : NODE_START;
+
+  const getConnectorRight = (idx: number) => {
+    if (idx + 1 < totalNodes) return getNodeLeft(idx + 1);
+    if (pendingAguardar) return pendingAguardarLeft;
+    return getConnectorLeft(idx) + 72; // trailing dashed connector
+  };
+
+  const getConnectorWidth = (idx: number) =>
+    getConnectorRight(idx) - getConnectorLeft(idx);
 
   /* ── Envio panel icon (large 28px white) ── */
   const envioIcon = (type: string) => {
@@ -511,8 +575,8 @@ export default function Canvas() {
           savedSegmentacao={savedSegmentacao || undefined}
         />
 
-        {/* No nodes yet */}
-        {totalNodes === 0 && activePanel !== "configurar" && (
+        {/* No nodes yet and no pending */}
+        {totalNodes === 0 && !pendingAguardar && activePanel !== "configurar" && (
           <>
             <DashedConnector
               style={{ left: "376px", top: "50%", transform: topTransform, width: "72px" }}
@@ -525,8 +589,8 @@ export default function Canvas() {
           </>
         )}
 
-        {/* Nodes exist */}
-        {totalNodes > 0 && (
+        {/* Nodes exist OR pending aguardar */}
+        {(totalNodes > 0 || pendingAguardar) && (
           <>
             <SolidConnector
               style={{ left: "376px", top: "50%", transform: topTransform, width: "124px" }}
@@ -538,11 +602,21 @@ export default function Canvas() {
 
             {savedNodes.map((node, idx) => (
               <div key={node.id}>
-                <GenericNode
-                  data={node.data}
-                  onEdit={() => handleEditNode(node.id)}
-                  style={{ left: `${getNodeLeft(idx)}px` }}
-                />
+                {node.data.type === "aguardar" ? (
+                  <AguardarCardNode
+                    initialData={node.data.aguardarData}
+                    style={{ left: `${getNodeLeft(idx)}px` }}
+                    onConfirm={(data) => handleAguardarUpdate(node.id, data)}
+                    onCancel={() => {}}
+                    onRemove={() => handleRemoveNode(node.id)}
+                  />
+                ) : (
+                  <GenericNode
+                    data={node.data}
+                    onEdit={() => handleEditNode(node.id)}
+                    style={{ left: `${getNodeLeft(idx)}px` }}
+                  />
+                )}
 
                 {idx < totalNodes - 1 ? (
                   <>
@@ -551,19 +625,19 @@ export default function Canvas() {
                         left: `${getConnectorLeft(idx)}px`,
                         top: "50%",
                         transform: topTransform,
-                        width: `${getConnectorWidth()}px`,
+                        width: `${getConnectorWidth(idx)}px`,
                       }}
                     />
                     <AddCircleButton
                       style={{
-                        left: `${getConnectorLeft(idx) + Math.floor(getConnectorWidth() / 2) - 14}px`,
+                        left: `${getConnectorLeft(idx) + Math.floor(getConnectorWidth(idx) / 2) - 14}px`,
                         top: "50%",
                         transform: topTransform,
                       }}
                       onClick={handleOpenAdicionarNo}
                     />
                   </>
-                ) : (
+                ) : !pendingAguardar ? (
                   <>
                     <DashedConnector
                       style={{
@@ -583,9 +657,30 @@ export default function Canvas() {
                       }}
                     />
                   </>
+                ) : (
+                  // Connector from last saved node to the pending aguardar
+                  <SolidConnector
+                    style={{
+                      left: `${getConnectorLeft(idx)}px`,
+                      top: "50%",
+                      transform: topTransform,
+                      width: `${getConnectorWidth(idx)}px`,
+                    }}
+                  />
                 )}
               </div>
             ))}
+
+            {/* Pending aguardar node (being configured inline) */}
+            {pendingAguardar && (
+              <AguardarCardNode
+                isNew
+                style={{ left: `${pendingAguardarLeft}px` }}
+                onConfirm={handleAguardarConfirm}
+                onCancel={() => setPendingAguardar(false)}
+                onRemove={() => setPendingAguardar(false)}
+              />
+            )}
           </>
         )}
       </div>
@@ -648,9 +743,6 @@ export default function Canvas() {
       )}
       {activePanel === "desisncreverConfig" && (
         <DesisncreverPanel onClose={handleClosePanel} onAdd={handleDesisncreverAdd} />
-      )}
-      {activePanel === "aguardarConfig" && (
-        <AguardarPanel onClose={handleClosePanel} onAdd={handleAguardarAdd} />
       )}
       {activePanel === "jornadaConfig" && (
         <AdicionarJornadaPanel onClose={handleClosePanel} onAdd={handleJornadaAdd} />
