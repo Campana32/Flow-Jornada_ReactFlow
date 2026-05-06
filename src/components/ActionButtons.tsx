@@ -1,4 +1,5 @@
 "use client";
+import { useFocusMode } from "@/contexts/FocusModeContext";
 
 function IconFullscreen() {
   return (
@@ -33,13 +34,19 @@ function IconPublish() {
 }
 
 export default function ActionButtons() {
+  const { focusMode, toggle } = useFocusMode();
   return (
     <div className="flex flex-col items-end justify-center bg-bg-white border border-border-secondary rounded-[12px] px-[10px] py-[12px]">
       <div className="flex items-center gap-[8px]">
         {/* Modo foco */}
-        <button className="flex items-center gap-[4px] bg-surface-primary border border-border-secondary rounded-[8px] px-[12px] py-[8px] hover:bg-gray-50 transition-colors">
+        <button
+          onClick={toggle}
+          className="flex items-center gap-[4px] bg-surface-primary border border-border-secondary rounded-[8px] px-[12px] py-[8px] hover:bg-gray-50 transition-colors"
+        >
           <IconFullscreen />
-          <span className="text-sm font-semibold text-text-secondary whitespace-nowrap">Modo foco</span>
+          <span className="text-sm font-semibold text-text-secondary whitespace-nowrap">
+            {focusMode ? "Sair do foco" : "Modo foco"}
+          </span>
         </button>
 
         <div className="w-px h-[20px] bg-border-secondary" />

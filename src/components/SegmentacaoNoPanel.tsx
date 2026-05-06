@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import CollapsedPanelBar from "./CollapsedPanelBar";
+import { NodeIconImg } from "@/lib/nodeConfig";
 
 export interface SegmentacaoNoNodeData {
   segmentacao: string;
@@ -62,7 +64,20 @@ const SEGMENTACOES = [
 ];
 
 export default function SegmentacaoNoPanel({ onClose, onAdd, onRemove }: SegmentacaoNoPanelProps) {
+  const [collapsed, setCollapsed] = useState(false);
   const [segmentacao, setSegmentacao] = useState("");
+
+  if (collapsed) {
+    return (
+      <CollapsedPanelBar
+        title="Segmentação"
+        color="#f79f28"
+        icon={<NodeIconImg type="segmentacao" size={32} />}
+        onExpand={() => setCollapsed(false)}
+        onClose={onClose}
+      />
+    );
+  }
 
   const canAdd = segmentacao.trim().length > 0;
 
@@ -85,7 +100,7 @@ export default function SegmentacaoNoPanel({ onClose, onAdd, onRemove }: Segment
           {icons.nodeIcon}
         </div>
         <span className="flex-1 text-lg font-semibold text-[#12171d]">Segmentação</span>
-        <button className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
+        <button onClick={() => setCollapsed(true)} className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
           {icons.arrowRight}
         </button>
         <div className="w-px h-[24px] bg-[#e8eaec]" />
@@ -145,3 +160,5 @@ export default function SegmentacaoNoPanel({ onClose, onAdd, onRemove }: Segment
     </div>
   );
 }
+
+

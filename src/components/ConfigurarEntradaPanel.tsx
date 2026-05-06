@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import FilterSection from "./FilterSection";
+import CollapsedPanelBar from "./CollapsedPanelBar";
 
 const SEGMENTACOES = [
   "Segmentação A",
@@ -10,6 +11,35 @@ const SEGMENTACOES = [
   "Leads qualificados",
   "Usuários premium",
 ];
+
+type PresetEvent = { event: string; period: string };
+
+const SEGMENTACAO_PRESETS: Record<string, { queFez: PresetEvent[]; queNaoFez: PresetEvent[] }> = {
+  "Clientes ativos": {
+    queFez: [{ event: "Comprou", period: "Últimos 30 dias" }],
+    queNaoFez: [],
+  },
+  "Leads qualificados": {
+    queFez: [{ event: "Visitou página", period: "Últimos 7 dias" }],
+    queNaoFez: [{ event: "Comprou", period: "Sempre" }],
+  },
+  "Usuários premium": {
+    queFez: [{ event: "Comprou", period: "Sempre" }, { event: "Abriu email", period: "Últimos 30 dias" }],
+    queNaoFez: [{ event: "Cancelou", period: "Últimos 30 dias" }],
+  },
+  "Segmentação A": {
+    queFez: [{ event: "Clicou", period: "Hoje" }],
+    queNaoFez: [],
+  },
+  "Segmentação B": {
+    queFez: [{ event: "Abriu email", period: "Últimos 7 dias" }],
+    queNaoFez: [{ event: "Clicou", period: "Hoje" }],
+  },
+  "Segmentação C": {
+    queFez: [{ event: "Visitou página", period: "Ontem" }],
+    queNaoFez: [],
+  },
+};
 
 interface ConfigurarEntradaPanelProps {
   initialSegmentacao?: string;
@@ -166,10 +196,27 @@ export default function ConfigurarEntradaPanel({
   onClose,
   onAdd,
 }: ConfigurarEntradaPanelProps) {
+  const [collapsed, setCollapsed] = useState(false);
   const [segmentacao, setSegmentacao] = useState(initialSegmentacao);
   const [isDirty, setIsDirty] = useState(false);
   const [saveToggle, setSaveToggle] = useState(false);
   const [showError, setShowError] = useState(false);
+
+  if (collapsed) {
+    return (
+      <CollapsedPanelBar
+        title="Configurar entrada"
+        color="#10b681"
+        icon={
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <path d="M26.667 16H5.333M5.333 16L13.333 8M5.333 16L13.333 24" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        }
+        onExpand={() => setCollapsed(false)}
+        onClose={onClose}
+      />
+    );
+  }
 
   const handleSegmentacaoChange = (value: string) => {
     setSegmentacao(value);
@@ -237,7 +284,7 @@ export default function ConfigurarEntradaPanel({
                   <IconSync />
                 </button>
               )}
-              <button className="flex items-center justify-center p-[8px] rounded-[8px] hover:bg-gray-100 transition-colors">
+              <button onClick={() => setCollapsed(true)} className="flex items-center justify-center p-[8px] rounded-[8px] hover:bg-gray-100 transition-colors">
                 <IconArrowForward />
               </button>
               <div className="w-px h-[20px] bg-border-secondary" />
@@ -278,15 +325,36 @@ export default function ConfigurarEntradaPanel({
             )}
           </div>
 
-          {/* Filter sections */}
-          <div className="flex flex-col gap-[12px]">
-            <FilterSection label="Que fez" suffix="os eventos abaixo" addLabel="Adicionar evento" />
-            <FilterSection badge="E" label="Que não fez" negativeWord="não" suffix="os eventos abaixo" addLabel="Adicionar evento" />
-            <FilterSection badge="E" label="Possui" suffix="as propriedades abaixo" addLabel="Adicionar propriedade" />
-            <FilterSection badge="E" label="Possui" suffix="as tags abaixo" addLabel="Adicionar tag" />
-            <FilterSection badge="E" label="Não possui" negativeWord="Não" suffix="as tags abaixo" addLabel="Adicionar tag" />
-            <FilterSection badge="E" label="Importou" suffix="os arquivos abaixo" addLabel="Adicionar importação" onlyAny />
-          </div>
+          {/* Filter sections — sempre visíveis; pré-preenchidas ao selecionar segmentação */}
+          {(() => {
+            const preset = segmentacao ? (SEGMENTACAO_PRESETS[segmentacao] ?? { queFez: [], queNaoFez: [] }) : { queFez: [], queNaoFez: [] };
+            return (
+              <div className="flex flex-col gap-[12px]">
+                <FilterSection
+                  key={`queFez-${segmentacao}`}
+                  label="Que fez"
+                  suffix="os eventos abaixo"
+                  addLabel="Adicionar evento"
+                  eventBased
+                  presetEvents={preset.queFez}
+                />
+                <FilterSection
+                  key={`queNaoFez-${segmentacao}`}
+                  badge="E"
+                  label="Que não fez"
+                  negativeWord="não"
+                  suffix="os eventos abaixo"
+                  addLabel="Adicionar evento"
+                  eventBased
+                  presetEvents={preset.queNaoFez}
+                />
+                <FilterSection badge="E" label="Possui" suffix="as propriedades abaixo" addLabel="Adicionar propriedade" />
+                <FilterSection badge="E" label="Possui" suffix="as tags abaixo" addLabel="Adicionar tag" />
+                <FilterSection badge="E" label="Não possui" negativeWord="Não" suffix="as tags abaixo" addLabel="Adicionar tag" />
+                <FilterSection badge="E" label="Importou" suffix="os arquivos abaixo" addLabel="Adicionar importação" onlyAny />
+              </div>
+            );
+          })()}
 
           <div className="h-px bg-border-secondary shrink-0" />
 

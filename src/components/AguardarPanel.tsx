@@ -143,3 +143,5 @@ export default function AguardarPanel({ onClose, onAdd }: AguardarPanelProps) {
     </div>
   );
 }
+
+

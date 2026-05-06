@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import CollapsedPanelBar from "./CollapsedPanelBar";
+import { NodeIconImg } from "@/lib/nodeConfig";
 
 export interface WebhooksNodeData {
   url: string;
@@ -54,8 +56,21 @@ function Field({ label, required, children }: { label: string; required?: boolea
 const COLOR = "#75ab21";
 
 export default function WebhooksPanel({ onClose, onAdd, onRemove }: WebhooksPanelProps) {
+  const [collapsed, setCollapsed] = useState(false);
   const [url, setUrl] = useState("");
   const [metodo, setMetodo] = useState("GET");
+
+  if (collapsed) {
+    return (
+      <CollapsedPanelBar
+        title="Webhooks"
+        color="#75ab21"
+        icon={<NodeIconImg type="webhooks" size={32} />}
+        onExpand={() => setCollapsed(false)}
+        onClose={onClose}
+      />
+    );
+  }
 
   const canAdd = url.trim().length > 0;
 
@@ -78,7 +93,7 @@ export default function WebhooksPanel({ onClose, onAdd, onRemove }: WebhooksPane
           {icons.nodeIcon}
         </div>
         <span className="flex-1 text-lg font-semibold text-[#12171d]">Webhooks</span>
-        <button className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
+        <button onClick={() => setCollapsed(true)} className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
           {icons.arrowRight}
         </button>
         <div className="w-px h-[24px] bg-[#e8eaec]" />
@@ -151,3 +166,5 @@ export default function WebhooksPanel({ onClose, onAdd, onRemove }: WebhooksPane
     </div>
   );
 }
+
+

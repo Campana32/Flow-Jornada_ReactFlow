@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import CollapsedPanelBar from "./CollapsedPanelBar";
+import { NodeIconImg } from "@/lib/nodeConfig";
 
 export interface AdicionarJornadaNodeData {
   jornada: string;
@@ -59,7 +61,20 @@ const JORNADAS = [
 ];
 
 export default function AdicionarJornadaPanel({ onClose, onAdd, onRemove }: AdicionarJornadaPanelProps) {
+  const [collapsed, setCollapsed] = useState(false);
   const [jornada, setJornada] = useState("");
+
+  if (collapsed) {
+    return (
+      <CollapsedPanelBar
+        title="Adicionar a outra jornada"
+        color="#10b8a9"
+        icon={<NodeIconImg type="jornadaOutra" size={32} />}
+        onExpand={() => setCollapsed(false)}
+        onClose={onClose}
+      />
+    );
+  }
 
   const canAdd = jornada.trim().length > 0;
 
@@ -82,7 +97,7 @@ export default function AdicionarJornadaPanel({ onClose, onAdd, onRemove }: Adic
           {icons.nodeIcon}
         </div>
         <span className="flex-1 text-lg font-semibold text-[#12171d]">Adicionar a outra jornada</span>
-        <button className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
+        <button onClick={() => setCollapsed(true)} className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
           {icons.arrowRight}
         </button>
         <div className="w-px h-[24px] bg-[#e8eaec]" />
@@ -142,3 +157,5 @@ export default function AdicionarJornadaPanel({ onClose, onAdd, onRemove }: Adic
     </div>
   );
 }
+
+

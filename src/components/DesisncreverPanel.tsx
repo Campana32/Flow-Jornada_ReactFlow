@@ -1,5 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import CollapsedPanelBar from "./CollapsedPanelBar";
+import { NodeIconImg } from "@/lib/nodeConfig";
+
 export interface DesisncreverNodeData {
   _placeholder?: never;
 }
@@ -31,6 +35,20 @@ const icons = {
 const COLOR = "#ef4444";
 
 export default function DesisncreverPanel({ onClose, onAdd, onRemove }: DesisncreverPanelProps) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (collapsed) {
+    return (
+      <CollapsedPanelBar
+        title="Desisncrever"
+        color="#ef4444"
+        icon={<NodeIconImg type="desisncrever" size={32} />}
+        onExpand={() => setCollapsed(false)}
+        onClose={onClose}
+      />
+    );
+  }
+
   const handleAdd = () => {
     onAdd({});
   };
@@ -49,7 +67,7 @@ export default function DesisncreverPanel({ onClose, onAdd, onRemove }: Desisncr
           {icons.nodeIcon}
         </div>
         <span className="flex-1 text-lg font-semibold text-[#12171d]">Desisncrever</span>
-        <button className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
+        <button onClick={() => setCollapsed(true)} className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
           {icons.arrowRight}
         </button>
         <div className="w-px h-[24px] bg-[#e8eaec]" />
@@ -90,3 +108,5 @@ export default function DesisncreverPanel({ onClose, onAdd, onRemove }: Desisncr
     </div>
   );
 }
+
+

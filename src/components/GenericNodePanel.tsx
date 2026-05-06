@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import CollapsedPanelBar from "./CollapsedPanelBar";
 
 export interface GenericNodeData {
   provedor: string;
@@ -21,7 +22,7 @@ export interface GenericNodePanelProps {
   initialData?: Partial<GenericNodeData>;
 }
 
-/* ── Inline SVG icons ── */
+/* â”€â”€ Inline SVG icons â”€â”€ */
 const icons = {
   close: (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -100,6 +101,7 @@ export default function GenericNodePanel({
   onRemove,
   initialData,
 }: GenericNodePanelProps) {
+  const [collapsed, setCollapsed] = useState(false);
   const [provedor, setProvedor] = useState(initialData?.provedor ?? "");
   const [naoPerturbe, setNaoPerturbe] = useState(initialData?.naoPerturbe ?? false);
   const [tipoMensagem, setTipoMensagem] = useState<"unica" | "ab" | null>(
@@ -108,6 +110,18 @@ export default function GenericNodePanel({
   const [remetente, setRemetente] = useState(initialData?.remetente ?? "");
   const [assunto, setAssunto] = useState(initialData?.assunto ?? "");
   const [preheader, setPreheader] = useState(initialData?.preheader ?? "");
+
+  if (collapsed) {
+    return (
+      <CollapsedPanelBar
+        title={title}
+        color={color}
+        icon={<div style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>}
+        onExpand={() => setCollapsed(false)}
+        onClose={onClose}
+      />
+    );
+  }
 
   const canAdd = provedor.trim().length > 0;
 
@@ -139,7 +153,7 @@ export default function GenericNodePanel({
 
         <span className="flex-1 text-lg font-semibold text-[#12171d]">{title}</span>
 
-        <button className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
+        <button onClick={() => setCollapsed(true)} className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
           {icons.arrowRight}
         </button>
 
@@ -329,3 +343,5 @@ export default function GenericNodePanel({
     </div>
   );
 }
+
+

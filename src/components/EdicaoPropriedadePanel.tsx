@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import CollapsedPanelBar from "./CollapsedPanelBar";
+import { NodeIconImg } from "@/lib/nodeConfig";
 
 export interface EdicaoPropriedadeNodeData {
   nome: string;
@@ -133,7 +135,7 @@ function PropRow({
         </span>
       </div>
 
-      {/* Value field — varies by tipo */}
+      {/* Value field – varies by tipo */}
       {row.tipo === "String" && (
         <input
           className={inputClass}
@@ -200,9 +202,22 @@ function PropRow({
 
 /* ── Main component ── */
 export default function EdicaoPropriedadePanel({ onClose, onAdd, onRemove }: EdicaoPropriedadePanelProps) {
+  const [collapsed, setCollapsed] = useState(false);
   const [nome, setNome] = useState("");
   const [secaoAberta, setSecaoAberta] = useState(true);
   const [rows, setRows] = useState<PropertyRow[]>([makeRow()]);
+
+  if (collapsed) {
+    return (
+      <CollapsedPanelBar
+        title="Edição de Propriedade"
+        color="#9d174d"
+        icon={<NodeIconImg type="edicaoProp" size={32} />}
+        onExpand={() => setCollapsed(false)}
+        onClose={onClose}
+      />
+    );
+  }
 
   const canAdd = nome.trim().length > 0;
 
@@ -233,7 +248,7 @@ export default function EdicaoPropriedadePanel({ onClose, onAdd, onRemove }: Edi
           <IconTune />
         </div>
         <span className="flex-1 text-lg font-semibold text-[#12171d]">Edição de Propriedade</span>
-        <button className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
+        <button onClick={() => setCollapsed(true)} className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
           <IconArrowRight />
         </button>
         <div className="w-px h-[24px] bg-[#e8eaec]" />
@@ -336,3 +351,5 @@ export default function EdicaoPropriedadePanel({ onClose, onAdd, onRemove }: Edi
     </div>
   );
 }
+
+

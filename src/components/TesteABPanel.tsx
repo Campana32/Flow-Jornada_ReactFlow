@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import CollapsedPanelBar from "./CollapsedPanelBar";
+import { NodeIconImg } from "@/lib/nodeConfig";
 
 export interface TesteABNodeData {
   varianteA: number;
@@ -34,8 +36,21 @@ const icons = {
 const COLOR = "#fb7185";
 
 export default function TesteABPanel({ onClose, onAdd, onRemove }: TesteABPanelProps) {
+  const [collapsed, setCollapsed] = useState(false);
   const [varianteA, setVarianteA] = useState(50);
   const [varianteB, setVarianteB] = useState(50);
+
+  if (collapsed) {
+    return (
+      <CollapsedPanelBar
+        title="Teste A/B"
+        color="#fb7185"
+        icon={<NodeIconImg type="testeAB" size={32} />}
+        onExpand={() => setCollapsed(false)}
+        onClose={onClose}
+      />
+    );
+  }
 
   const handleVarianteAChange = (val: number) => {
     const clamped = Math.min(100, Math.max(0, val));
@@ -61,7 +76,7 @@ export default function TesteABPanel({ onClose, onAdd, onRemove }: TesteABPanelP
           {icons.nodeIcon}
         </div>
         <span className="flex-1 text-lg font-semibold text-[#12171d]">Teste A/B</span>
-        <button className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
+        <button onClick={() => setCollapsed(true)} className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
           {icons.arrowRight}
         </button>
         <div className="w-px h-[24px] bg-[#e8eaec]" />
@@ -155,3 +170,5 @@ export default function TesteABPanel({ onClose, onAdd, onRemove }: TesteABPanelP
     </div>
   );
 }
+
+

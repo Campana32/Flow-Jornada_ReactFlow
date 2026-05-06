@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import CollapsedPanelBar from "./CollapsedPanelBar";
+import { NodeIconImg } from "@/lib/nodeConfig";
 
 export interface EmailNodeData {
   nome: string;
@@ -135,6 +137,7 @@ const VARIANT_LABELS = ["Variante A", "Variante B"] as const;
 
 /* ── Main component ── */
 export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmailPanelProps) {
+  const [collapsed, setCollapsed] = useState(false);
   const [nome, setNome] = useState("");
   const [provedor, setProvedor] = useState("");
   const [naoPerturbe, setNaoPerturbe] = useState(true);
@@ -144,6 +147,18 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmail
   const [preheader, setPreheader] = useState("");
   const [activeTab, setActiveTab] = useState(0);
   const [varPercent, setVarPercent] = useState([50, 50]);
+
+  if (collapsed) {
+    return (
+      <CollapsedPanelBar
+        title="Envio de E-mail"
+        color="#2724ed"
+        icon={<NodeIconImg type="email" size={32} />}
+        onExpand={() => setCollapsed(false)}
+        onClose={onClose}
+      />
+    );
+  }
 
   const canAdd = nome.trim().length > 0 && provedor.length > 0 && tipoMensagem !== null;
 
@@ -177,7 +192,7 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmail
       className="fixed z-50 flex flex-col rounded-[12px] overflow-hidden border border-[#e8eaec] bg-white shadow-[0px_20px_24px_-4px_rgba(16,24,40,0.08),0px_8px_8px_-4px_rgba(39,44,55,0.08)]"
       style={{ bottom: "24px", right: "24px", width: 660, height: "79vh" }}
     >
-      {/* ── Header ── */}
+      {/* â”€â”€ Header â”€â”€ */}
       <div className="flex items-center gap-[12px] px-[16px] py-[14px] border-b border-[#e8eaec] shrink-0">
         <div
           className="flex items-center justify-center rounded-[10px] shrink-0"
@@ -186,7 +201,7 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmail
           <IcEnvelopeWhite />
         </div>
         <span className="flex-1 text-lg font-semibold text-[#12171d]">Envio de E-mail</span>
-        <button className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
+        <button onClick={() => setCollapsed(true)} className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-gray-100 transition-colors">
           <IcArrowRight />
         </button>
         <div className="w-px h-[24px] bg-[#e8eaec]" />
@@ -198,10 +213,10 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmail
         </button>
       </div>
 
-      {/* ── Content ── */}
+      {/* â”€â”€ Content â”€â”€ */}
       <div className="flex-1 overflow-y-auto p-[20px] flex flex-col gap-[16px]">
 
-        {/* ── Nome + Provedor ── */}
+        {/* â”€â”€ Nome + Provedor â”€â”€ */}
         <div className="flex gap-[8px]">
           <Field label="Nome" required>
             <input
@@ -234,7 +249,7 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmail
 
         <div className="h-px bg-[#e8eaec]" />
 
-        {/* ── Toggle Não perturbe ── */}
+        {/* â”€â”€ Toggle Não perturbe â”€â”€ */}
         <div className="flex items-center justify-between rounded-[8px] border border-[#e8eaec] bg-[#fcfcfc] px-[12px] py-[16px]">
           <span className="text-sm font-medium text-[#12171d]">
             Respeitar as restrições de entrega (Não perturbe)
@@ -258,7 +273,7 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmail
 
         <div className="h-px bg-[#e8eaec]" />
 
-        {/* ── Estado: Selecione o tipo ── */}
+        {/* â”€â”€ Estado: Selecione o tipo â”€â”€ */}
         {tipoMensagem === null && (
           <div className="rounded-[16px] border border-[#e8eaec] overflow-hidden bg-[#f1f2f3]">
             {/* Sub-header */}
@@ -291,7 +306,7 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmail
           </div>
         )}
 
-        {/* ── Estado: Mensagem única ── */}
+        {/* â”€â”€ Estado: Mensagem única â”€â”€ */}
         {tipoMensagem === "unica" && (
           <div className="rounded-[16px] border border-[#e8eaec] bg-white flex flex-col gap-[24px] p-[20px]">
             {/* Header row */}
@@ -339,7 +354,7 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmail
           </div>
         )}
 
-        {/* ── Estado: Teste A/B ── */}
+        {/* â”€â”€ Estado: Teste A/B â”€â”€ */}
         {tipoMensagem === "ab" && (
           <div className="rounded-[16px] border border-[#e8eaec] bg-white flex flex-col gap-[24px] p-[20px]">
             {/* Header row */}
@@ -449,7 +464,7 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmail
         )}
       </div>
 
-      {/* ── Footer ── */}
+      {/* â”€â”€ Footer â”€â”€ */}
       <div className="flex items-center justify-between px-[20px] py-[14px] border-t border-[#e8eaec] shrink-0 bg-white">
         {onRemove ? (
           <button type="button" onClick={onRemove} className="text-sm font-semibold text-[#d92d20] hover:opacity-80 transition-opacity">
@@ -479,3 +494,5 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmail
     </div>
   );
 }
+
+
