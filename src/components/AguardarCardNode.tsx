@@ -11,6 +11,7 @@ interface AguardarCardNodeProps {
   initialData?: AguardarNodeData;
   isNew?: boolean;
   style?: React.CSSProperties;
+  forceCollapsed?: boolean;
   onConfirm: (data: AguardarNodeData) => void;
   onCancel: () => void;
   onRemove: () => void;
@@ -48,6 +49,7 @@ export default function AguardarCardNode({
   initialData,
   isNew = false,
   style,
+  forceCollapsed,
   onConfirm,
   onCancel,
   onRemove,
@@ -81,7 +83,7 @@ export default function AguardarCardNode({
   };
 
   /* ── Closed state ── */
-  if (!isOpen) {
+  if (!isOpen || (forceCollapsed && !isNew)) {
     return (
       <div style={containerStyle}>
         <div className="flex items-center isolate relative">
@@ -98,7 +100,10 @@ export default function AguardarCardNode({
             style={{ background: COLOR, width: 324 }}
           >
             <span className="text-base font-semibold text-white pl-[4px]">
-              Aguardar por
+              Aguardar por{" "}
+              <span className="font-bold">
+                {quantidade} {pluralize(quantidade, unidade)}
+              </span>
             </span>
             <button
               onClick={() => setIsOpen(true)}

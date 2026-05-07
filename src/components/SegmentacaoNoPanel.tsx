@@ -12,6 +12,7 @@ interface SegmentacaoNoPanelProps {
   onClose: () => void;
   onAdd: (data: SegmentacaoNoNodeData) => void;
   onRemove?: () => void;
+  initialData?: Partial<SegmentacaoNoNodeData>;
 }
 
 const icons = {
@@ -63,9 +64,9 @@ const SEGMENTACOES = [
   "Alto valor",
 ];
 
-export default function SegmentacaoNoPanel({ onClose, onAdd, onRemove }: SegmentacaoNoPanelProps) {
+export default function SegmentacaoNoPanel({ onClose, onAdd, onRemove, initialData }: SegmentacaoNoPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [segmentacao, setSegmentacao] = useState("");
+  const [segmentacao, setSegmentacao] = useState(initialData?.segmentacao ?? "");
 
   if (collapsed) {
     return (

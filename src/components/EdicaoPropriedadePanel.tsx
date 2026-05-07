@@ -13,6 +13,7 @@ interface EdicaoPropriedadePanelProps {
   onClose: () => void;
   onAdd: (data: EdicaoPropriedadeNodeData) => void;
   onRemove?: () => void;
+  initialData?: Partial<EdicaoPropriedadeNodeData>;
 }
 
 type TipoProp = "Padrão" | "String" | "Booleano" | "Lista" | "Inteiro";
@@ -201,11 +202,11 @@ function PropRow({
 }
 
 /* ── Main component ── */
-export default function EdicaoPropriedadePanel({ onClose, onAdd, onRemove }: EdicaoPropriedadePanelProps) {
+export default function EdicaoPropriedadePanel({ onClose, onAdd, onRemove, initialData }: EdicaoPropriedadePanelProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [nome, setNome] = useState("");
+  const [nome, setNome] = useState(initialData?.nome ?? "");
   const [secaoAberta, setSecaoAberta] = useState(true);
-  const [rows, setRows] = useState<PropertyRow[]>([makeRow()]);
+  const [rows, setRows] = useState<PropertyRow[]>(initialData?.rows?.length ? initialData.rows : [makeRow()]);
 
   if (collapsed) {
     return (

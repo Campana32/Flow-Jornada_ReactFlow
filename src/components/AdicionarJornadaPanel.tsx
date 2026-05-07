@@ -12,6 +12,7 @@ interface AdicionarJornadaPanelProps {
   onClose: () => void;
   onAdd: (data: AdicionarJornadaNodeData) => void;
   onRemove?: () => void;
+  initialData?: Partial<AdicionarJornadaNodeData>;
 }
 
 const icons = {
@@ -60,9 +61,9 @@ const JORNADAS = [
   "Jornada VIP",
 ];
 
-export default function AdicionarJornadaPanel({ onClose, onAdd, onRemove }: AdicionarJornadaPanelProps) {
+export default function AdicionarJornadaPanel({ onClose, onAdd, onRemove, initialData }: AdicionarJornadaPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [jornada, setJornada] = useState("");
+  const [jornada, setJornada] = useState(initialData?.jornada ?? "");
 
   if (collapsed) {
     return (

@@ -13,6 +13,7 @@ interface TesteABPanelProps {
   onClose: () => void;
   onAdd: (data: TesteABNodeData) => void;
   onRemove?: () => void;
+  initialData?: Partial<TesteABNodeData>;
 }
 
 const icons = {
@@ -35,10 +36,10 @@ const icons = {
 
 const COLOR = "#fb7185";
 
-export default function TesteABPanel({ onClose, onAdd, onRemove }: TesteABPanelProps) {
+export default function TesteABPanel({ onClose, onAdd, onRemove, initialData }: TesteABPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [varianteA, setVarianteA] = useState(50);
-  const [varianteB, setVarianteB] = useState(50);
+  const [varianteA, setVarianteA] = useState(initialData?.varianteA ?? 50);
+  const [varianteB, setVarianteB] = useState(initialData?.varianteB ?? 50);
 
   if (collapsed) {
     return (

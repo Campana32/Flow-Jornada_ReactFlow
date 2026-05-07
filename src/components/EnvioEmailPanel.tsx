@@ -19,6 +19,7 @@ interface EnvioEmailPanelProps {
   onClose: () => void;
   onAdd: (data: EmailNodeData) => void;
   onRemove?: () => void;
+  initialData?: Partial<EmailNodeData>;
 }
 
 /* ── Icons ── */
@@ -136,17 +137,19 @@ const VARIANT_COLORS = ["#5290f5", "#3cca71"] as const;
 const VARIANT_LABELS = ["Variante A", "Variante B"] as const;
 
 /* ── Main component ── */
-export default function EnvioEmailPanel({ onClose, onAdd, onRemove }: EnvioEmailPanelProps) {
+export default function EnvioEmailPanel({ onClose, onAdd, onRemove, initialData }: EnvioEmailPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [nome, setNome] = useState("");
-  const [provedor, setProvedor] = useState("");
-  const [naoPerturbe, setNaoPerturbe] = useState(true);
-  const [tipoMensagem, setTipoMensagem] = useState<"unica" | "ab" | null>(null);
-  const [remetente, setRemetente] = useState("");
-  const [assunto, setAssunto] = useState("");
-  const [preheader, setPreheader] = useState("");
+  const [nome, setNome] = useState(initialData?.nome ?? "");
+  const [provedor, setProvedor] = useState(initialData?.provedor ?? "");
+  const [naoPerturbe, setNaoPerturbe] = useState(initialData?.naoPerturbe ?? true);
+  const [tipoMensagem, setTipoMensagem] = useState<"unica" | "ab" | null>(initialData?.tipoMensagem ?? null);
+  const [remetente, setRemetente] = useState(initialData?.remetente ?? "");
+  const [assunto, setAssunto] = useState(initialData?.assunto ?? "");
+  const [preheader, setPreheader] = useState(initialData?.preheader ?? "");
   const [activeTab, setActiveTab] = useState(0);
-  const [varPercent, setVarPercent] = useState([50, 50]);
+  const [varPercent, setVarPercent] = useState(
+    initialData?.variantesAB ? [initialData.variantesAB.a, initialData.variantesAB.b] : [50, 50]
+  );
 
   if (collapsed) {
     return (

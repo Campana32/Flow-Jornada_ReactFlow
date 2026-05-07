@@ -13,6 +13,7 @@ interface WebhooksPanelProps {
   onClose: () => void;
   onAdd: (data: WebhooksNodeData) => void;
   onRemove?: () => void;
+  initialData?: Partial<WebhooksNodeData>;
 }
 
 const icons = {
@@ -55,10 +56,10 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 const COLOR = "#75ab21";
 
-export default function WebhooksPanel({ onClose, onAdd, onRemove }: WebhooksPanelProps) {
+export default function WebhooksPanel({ onClose, onAdd, onRemove, initialData }: WebhooksPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [url, setUrl] = useState("");
-  const [metodo, setMetodo] = useState("GET");
+  const [url, setUrl] = useState(initialData?.url ?? "");
+  const [metodo, setMetodo] = useState(initialData?.metodo ?? "GET");
 
   if (collapsed) {
     return (

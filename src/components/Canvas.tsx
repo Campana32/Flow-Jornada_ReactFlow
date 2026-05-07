@@ -54,6 +54,7 @@ interface SavedNode {
   id: string;
   data: GenericNodeData;
   panelType: string;
+  rawData?: unknown;
 }
 
 let _idCounter = 0;
@@ -228,6 +229,8 @@ export default function Canvas() {
     ? () => { handleRemoveNode(editingNodeId); handleClosePanel(); }
     : undefined;
 
+  const editingNode = editingNodeId ? savedNodes.find((n) => n.id === editingNodeId) : null;
+
   const handleAdd = (segmentacao: string) => {
     setSavedSegmentacao(segmentacao);
     setActivePanel("none");
@@ -263,13 +266,13 @@ export default function Canvas() {
     handleNodeSelect(node.panelType);
   };
 
-  function pushOrUpdateNode(data: GenericNodeData, panelType: string) {
+  function pushOrUpdateNode(data: GenericNodeData, panelType: string, rawData?: unknown) {
     if (editingNodeId) {
       setSavedNodes((prev) =>
-        prev.map((n) => (n.id === editingNodeId ? { ...n, data, panelType } : n))
+        prev.map((n) => (n.id === editingNodeId ? { ...n, data, panelType, rawData } : n))
       );
     } else {
-      setSavedNodes((prev) => [...prev, { id: uid(), data, panelType }]);
+      setSavedNodes((prev) => [...prev, { id: uid(), data, panelType, rawData }]);
     }
     setActivePanel("none");
     setEditingNodeId(null);
@@ -282,7 +285,7 @@ export default function Canvas() {
       icon: nodeIcon("email"),
       label: nodeLabels.email,
       fields: [{ key: "Tipo de Mensagem:", value: raw.tipoMensagem === "unica" ? "Mensagem única" : "Teste A/B" }],
-    }, "email");
+    }, "email", raw);
   };
 
   const handleGenericEnvioAdd = (type: string) => (raw: GenericPanelData) => {
@@ -292,7 +295,7 @@ export default function Canvas() {
       icon: nodeIcon(type),
       label: nodeLabels[type],
       fields: [{ key: "Tipo de Mensagem:", value: raw.tipoMensagem === "unica" ? "Mensagem única" : "Teste A/B" }],
-    }, type);
+    }, type, raw);
   };
 
   const handleEdicaoAdd = (raw: EdicaoPropriedadeNodeData) => {
@@ -302,7 +305,7 @@ export default function Canvas() {
       icon: nodeIcon("edicaoProp"),
       label: nodeLabels.edicaoProp,
       fields: [{ key: "Propriedade:", value: raw.nome || "—" }],
-    }, "edicaoProp");
+    }, "edicaoProp", raw);
   };
 
   const handleWebhooksAdd = (raw: WebhooksNodeData) => {
@@ -312,7 +315,7 @@ export default function Canvas() {
       icon: nodeIcon("webhooks"),
       label: nodeLabels.webhooks,
       fields: [{ key: "Método:", value: raw.metodo }],
-    }, "webhooks");
+    }, "webhooks", raw);
   };
 
   const handleDesisncreverAdd = (_raw: DesisncreverNodeData) => {
@@ -322,7 +325,7 @@ export default function Canvas() {
       icon: nodeIcon("desisncrever"),
       label: nodeLabels.desisncrever,
       fields: [],
-    }, "desisncrever");
+    }, "desisncrever", _raw);
   };
 
   const handleAguardarConfirm = (raw: AguardarNodeData) => {
@@ -372,7 +375,7 @@ export default function Canvas() {
       icon: nodeIcon("jornadaOutra"),
       label: nodeLabels.jornadaOutra,
       fields: [{ key: "Redirecionar para:", value: raw.jornada || "—" }],
-    }, "jornadaOutra");
+    }, "jornadaOutra", raw);
   };
 
   const handleSegmentacaoAdd = (raw: SegmentacaoNoNodeData) => {
@@ -382,7 +385,7 @@ export default function Canvas() {
       icon: nodeIcon("segmentacao"),
       label: nodeLabels.segmentacao,
       fields: [{ key: "Segmentação:", value: raw.segmentacao || "—" }],
-    }, "segmentacao");
+    }, "segmentacao", raw);
   };
 
   const handleTesteABAdd = (_raw: TesteABNodeData) => {
@@ -392,8 +395,10 @@ export default function Canvas() {
       icon: nodeIcon("testeAB"),
       label: nodeLabels.testeAB,
       fields: [{ key: "Variantes:", value: "2 variantes" }],
-    }, "testeAB");
+    }, "testeAB", _raw);
   };
+
+  const autoCollapsed = viewport.zoom <= 0.6;
 
   /* ── Node positioning (cumulative, respects per-node widths) ── */
   const NODE_START = 500;
@@ -489,6 +494,7 @@ export default function Canvas() {
         <EntradaCard
           onConfigure={handleOpenConfigurar}
           savedSegmentacao={savedSegmentacao || undefined}
+          forceCollapsed={autoCollapsed}
         />
 
         {/* No nodes yet and no pending */}
@@ -522,6 +528,7 @@ export default function Canvas() {
                   <AguardarCardNode
                     initialData={node.data.aguardarData}
                     style={{ left: `${getNodeLeft(idx)}px` }}
+                    forceCollapsed={autoCollapsed}
                     onConfirm={(data) => handleAguardarUpdate(node.id, data)}
                     onCancel={() => {}}
                     onRemove={() => handleRemoveNode(node.id)}
@@ -531,6 +538,7 @@ export default function Canvas() {
                     data={node.data}
                     onEdit={() => handleEditNode(node.id)}
                     style={{ left: `${getNodeLeft(idx)}px` }}
+                    forceCollapsed={autoCollapsed}
                   />
                 )}
 
@@ -613,7 +621,7 @@ export default function Canvas() {
         <AdicionarNoPanel onClose={handleClosePanel} onNodeSelect={handleNodeSelect} />
       )}
       {activePanel === "emailConfig" && (
-        <EnvioEmailPanel onClose={handleClosePanel} onAdd={handleEmailAdd} onRemove={removeHandler} />
+        <EnvioEmailPanel onClose={handleClosePanel} onAdd={handleEmailAdd} onRemove={removeHandler} initialData={editingNode?.rawData as EmailNodeData | undefined} />
       )}
       {activePanel === "smsConfig" && (
         <GenericNodePanel
@@ -623,6 +631,7 @@ export default function Canvas() {
           onClose={handleClosePanel}
           onAdd={handleGenericEnvioAdd("sms")}
           onRemove={removeHandler}
+          initialData={editingNode?.rawData as GenericPanelData | undefined}
         />
       )}
       {activePanel === "whatsappConfig" && (
@@ -633,6 +642,7 @@ export default function Canvas() {
           onClose={handleClosePanel}
           onAdd={handleGenericEnvioAdd("whatsapp")}
           onRemove={removeHandler}
+          initialData={editingNode?.rawData as GenericPanelData | undefined}
         />
       )}
       {activePanel === "mobilePushConfig" && (
@@ -643,6 +653,7 @@ export default function Canvas() {
           onClose={handleClosePanel}
           onAdd={handleGenericEnvioAdd("mobilePush")}
           onRemove={removeHandler}
+          initialData={editingNode?.rawData as GenericPanelData | undefined}
         />
       )}
       {activePanel === "webPushConfig" && (
@@ -653,25 +664,26 @@ export default function Canvas() {
           onClose={handleClosePanel}
           onAdd={handleGenericEnvioAdd("webPush")}
           onRemove={removeHandler}
+          initialData={editingNode?.rawData as GenericPanelData | undefined}
         />
       )}
       {activePanel === "edicaoConfig" && (
-        <EdicaoPropriedadePanel onClose={handleClosePanel} onAdd={handleEdicaoAdd} onRemove={removeHandler} />
+        <EdicaoPropriedadePanel onClose={handleClosePanel} onAdd={handleEdicaoAdd} onRemove={removeHandler} initialData={editingNode?.rawData as EdicaoPropriedadeNodeData | undefined} />
       )}
       {activePanel === "webhooksConfig" && (
-        <WebhooksPanel onClose={handleClosePanel} onAdd={handleWebhooksAdd} onRemove={removeHandler} />
+        <WebhooksPanel onClose={handleClosePanel} onAdd={handleWebhooksAdd} onRemove={removeHandler} initialData={editingNode?.rawData as WebhooksNodeData | undefined} />
       )}
       {activePanel === "desisncreverConfig" && (
         <DesisncreverPanel onClose={handleClosePanel} onAdd={handleDesisncreverAdd} onRemove={removeHandler} />
       )}
       {activePanel === "jornadaConfig" && (
-        <AdicionarJornadaPanel onClose={handleClosePanel} onAdd={handleJornadaAdd} onRemove={removeHandler} />
+        <AdicionarJornadaPanel onClose={handleClosePanel} onAdd={handleJornadaAdd} onRemove={removeHandler} initialData={editingNode?.rawData as AdicionarJornadaNodeData | undefined} />
       )}
       {activePanel === "segmentacaoConfig" && (
-        <SegmentacaoNoPanel onClose={handleClosePanel} onAdd={handleSegmentacaoAdd} onRemove={removeHandler} />
+        <SegmentacaoNoPanel onClose={handleClosePanel} onAdd={handleSegmentacaoAdd} onRemove={removeHandler} initialData={editingNode?.rawData as SegmentacaoNoNodeData | undefined} />
       )}
       {activePanel === "testeABConfig" && (
-        <TesteABPanel onClose={handleClosePanel} onAdd={handleTesteABAdd} onRemove={removeHandler} />
+        <TesteABPanel onClose={handleClosePanel} onAdd={handleTesteABAdd} onRemove={removeHandler} initialData={editingNode?.rawData as TesteABNodeData | undefined} />
       )}
 
       {/* ── Zoom control (outside transform) ── */}

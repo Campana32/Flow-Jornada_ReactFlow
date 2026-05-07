@@ -20,6 +20,7 @@ interface GenericNodeProps {
   data: GenericNodeData;
   onEdit: () => void;
   style?: React.CSSProperties;
+  forceCollapsed?: boolean;
 }
 
 const icons = {
@@ -69,7 +70,7 @@ function DataRow({ label, value }: { label: string; value: string }) {
           {value}
         </span>
         <button
-          onClick={handleCopy}
+          onClick={(e) => { e.stopPropagation(); handleCopy(); }}
           title={copied ? "Copiado!" : "Copiar"}
           className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
         >
@@ -94,7 +95,7 @@ export function shortId(seed: string): string {
   return Math.abs(h).toString(16).slice(0, 8).padStart(8, "0");
 }
 
-export default function GenericNode({ data, onEdit, style }: GenericNodeProps) {
+export default function GenericNode({ data, onEdit, style, forceCollapsed }: GenericNodeProps) {
   const [expanded, setExpanded] = useState(true);
   const id = shortId(data.type);
 
@@ -143,8 +144,12 @@ export default function GenericNode({ data, onEdit, style }: GenericNodeProps) {
       </div>
 
       {/* Body */}
-      {expanded && (
-        <div className="bg-white px-[14px] py-[12px] flex flex-col gap-[10px]">
+      {expanded && !forceCollapsed && (
+        <div
+          className="bg-white px-[14px] py-[12px] flex flex-col gap-[10px] cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={onEdit}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           <DataRow label="Id:" value={id} />
           {data.fields.map((f) => (
             <DataRow key={f.key} label={f.key} value={f.value} />
