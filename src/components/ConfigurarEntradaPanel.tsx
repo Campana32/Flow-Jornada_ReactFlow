@@ -98,6 +98,80 @@ function IconSwitch({ checked }: { checked: boolean }) {
   );
 }
 
+/* ── Venn Diagram Drop Content ── */
+function VennIconA() {
+  return (
+    <svg width="30" height="19" viewBox="0 0 30 18.854" fill="none">
+      <path
+        d="M20.506 0.0732C25.713 0.0732 29.933 4.2937 29.933 9.5C29.933 14.7063 25.713 18.927 20.506 18.927C18.45 18.927 16.549 18.266 15 17.1484C13.45 18.2657 11.55 18.927 9.494 18.927C4.287 18.927 0.067 14.7063 0.067 9.5C0.067 4.2937 4.287 0.0732 9.494 0.0732C11.55 0.0732 13.45 0.7335 15 1.8506C16.549 0.7332 18.45 0.0732 20.506 0.0732ZM9.494 0.5732C4.564 0.5732 0.567 4.5699 0.567 9.5C0.567 14.4301 4.564 18.4268 9.494 18.4268C11.386 18.4268 13.139 17.8356 14.583 16.8311C12.447 15.1029 11.08 12.4619 11.08 9.5C11.08 6.5379 12.447 3.8961 14.583 2.168C13.139 1.1637 11.386 0.5732 9.494 0.5732ZM20.506 0.5732C18.614 0.5732 16.86 1.1634 15.416 2.168C17.553 3.8961 18.92 6.5376 18.92 9.5C18.92 12.4622 17.552 15.1029 15.416 16.8311C16.86 17.836 18.614 18.4268 20.506 18.4268C25.436 18.4268 29.433 14.4301 29.433 9.5C29.433 4.5699 25.436 0.5732 20.506 0.5732ZM15 2.4756C12.918 4.1098 11.58 6.6482 11.58 9.5C11.58 12.3516 12.918 14.8892 15 16.5234C17.081 14.8892 18.42 12.3519 18.42 9.5C18.42 6.6479 17.082 4.1098 15 2.4756Z"
+        fill="#2724ED"
+      />
+      <path
+        d="M18.6 9.4453C18.6 13.3447 16.771 15.2711 14.986 16.5059C13.782 15.7589 11.372 13.3447 11.372 9.4453C11.372 6.154 13.338 3.1338 14.986 2.3848C16.482 3.4339 18.6 5.5459 18.6 9.4453Z"
+        fill="#2724ED"
+      />
+    </svg>
+  );
+}
+
+function VennIconB() {
+  return (
+    <svg width="30" height="19" viewBox="0 0 30 18.854" fill="none">
+      <path
+        d="M20.506 0.0732C25.713 0.0732 29.933 4.2937 29.933 9.5C29.933 14.7063 25.713 18.927 20.506 18.927C18.45 18.927 16.549 18.266 15 17.1484C13.45 18.2657 11.55 18.927 9.494 18.927C4.287 18.927 0.067 14.7063 0.067 9.5C0.067 4.2937 4.287 0.0732 9.494 0.0732C11.55 0.0732 13.45 0.7335 15 1.8506C16.549 0.7332 18.45 0.0732 20.506 0.0732Z"
+        fill="#2724ED"
+      />
+      <path
+        d="M18.6 9.4453C18.6 13.3447 16.771 15.2711 14.986 16.5059C13.782 15.7589 11.372 13.3447 11.372 9.4453C11.372 6.154 13.338 3.1338 14.986 2.3848C16.482 3.4339 18.6 5.5459 18.6 9.4453Z"
+        fill="#FCFCFC"
+      />
+    </svg>
+  );
+}
+
+const VENN_ROWS = [
+  { key: "fez",           parts: ["Que ",  "fez",       "\nos eventos"]        as const, icon: "A" },
+  { key: "naoFez",        parts: ["Que ",  "não fez",   "\nos eventos"]        as const, icon: "B" },
+  { key: "possuiProps",   parts: ["Que",   " possui",   "\nas propriedades"]   as const, icon: "A" },
+  { key: "possuiTags",    parts: ["Que ",  "possui",    "\nas tags"]           as const, icon: "A" },
+  { key: "naoPossuiTags", parts: ["Que ",  "não possui","\nas tags"]           as const, icon: "B" },
+] as const;
+
+function VennDiagramContent() {
+  return (
+    <div className="flex flex-col gap-[16px] w-[245px]">
+      <div className="relative border-y border-[#E8EAEC] divide-y divide-[#E8EAEC]">
+        <div className="absolute top-0 bottom-0 w-px bg-[#E8EAEC]" style={{ left: "100px" }} />
+        {VENN_ROWS.map(({ key, parts, icon }) => (
+          <div key={key} className="flex items-center py-[12px]">
+            <p className="w-[100px] text-[12px] leading-[18px] text-[#12171D] whitespace-pre-wrap shrink-0">
+              {parts[0]}<strong>{parts[1]}</strong>{parts[2]}
+            </p>
+            <div className="flex items-center pl-[12px] flex-1 min-w-0">
+              <span className="text-[12px] leading-[18px] text-[#12171D] shrink-0">
+                Todos <strong>(E)</strong>
+              </span>
+            </div>
+            <div className="flex items-center justify-center w-[40px] shrink-0">
+              {icon === "A" ? <VennIconA /> : <VennIconB />}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-[4px] items-center">
+        <div className="flex gap-[6px] items-center shrink-0">
+          <div className="bg-[#2724ED] rounded-[2px] size-[12px] shrink-0" />
+          <span className="text-[12px] leading-[18px] text-[#12171D]">Dentro da segmentação</span>
+        </div>
+        <div className="flex gap-[6px] items-center shrink-0">
+          <div className="border border-[#97ABFF] rounded-[2px] size-[12px] shrink-0" />
+          <span className="text-[12px] leading-[18px] text-[#12171D] whitespace-nowrap">Fora da segmentação</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Left floating cards (Venn + Alcance) ── */
 function LeftCards() {
   const [vennOpen, setVennOpen] = useState(false);
@@ -116,8 +190,8 @@ function LeftCards() {
           </svg>
         </button>
         {vennOpen && (
-          <div className="mt-[12px] h-[120px] flex items-center justify-center bg-gray-50 rounded-[8px]">
-            <span className="text-xs text-text-tertiary">Diagrama de Venn</span>
+          <div className="mt-[12px]">
+            <VennDiagramContent />
           </div>
         )}
       </div>
