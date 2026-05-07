@@ -1,6 +1,12 @@
 "use client";
 
-const imgContent = "https://www.figma.com/api/mcp/asset/8afd34a1-556f-4d01-a44e-6f269670c1c2";
+function LogoBG() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13.5809 1.29297H9.27017V5.60367H13.5809V1.29297ZM17.7965 21.0081V5.60367H13.5809V21.0081H17.7965ZM26.7856 19.3599C26.7856 25.4836 21.8156 30.4536 15.6918 30.4536C9.56812 30.4536 4.5918 25.4836 4.5918 19.3599C4.5918 14.7259 7.43813 10.7765 11.4699 9.11562V13.9335C9.85339 15.1886 8.80741 17.1538 8.80741 19.3599C8.80741 23.1571 11.8883 26.238 15.6855 26.238C19.4827 26.238 22.5636 23.1571 22.5636 19.3599C22.5636 17.1538 21.5176 15.1886 19.9011 13.9335V9.11562C23.9329 10.7765 26.7792 14.7259 26.7792 19.3599H26.7856Z" fill="#2724ED"/>
+    </svg>
+  );
+}
 
 function IconHome() {
   return (
@@ -56,11 +62,7 @@ export default function Sidebar() {
       {/* Logo section */}
       <div className="relative flex flex-col items-center justify-center h-[72px] px-[8px] pt-[16px] pb-[12px] w-[58px]">
         <div className="relative shrink-0 size-[32px]">
-          <img
-            alt="BeGrowth Logo"
-            className="block size-full object-contain"
-            src={imgContent}
-          />
+          <LogoBG />
         </div>
         {/* Collapse icon */}
         <div className="absolute top-[26.5px] left-[49px] bg-bg-primary border border-border-secondary rounded-full p-[4px] flex items-start">
