@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 
 interface EntradaCardProps {
   onConfigure: () => void;
@@ -8,23 +7,6 @@ interface EntradaCardProps {
   forceCollapsed?: boolean;
 }
 
-const IcPencil = () => (
-  <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-    <path d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4l-10 10L4 16l.7-3.7 10-10z" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const IcChevronDown = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path d="M4 6L8 10L12 6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const IcChevronUp = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path d="M4 10L8 6L12 10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 function IconEntrada() {
   return (
@@ -62,9 +44,8 @@ function FilterRow({ label, values }: { label: string; values: string[] }) {
 
 // icon: 48px outer (p-8 + 28 content + border-2), overlaps header 16px → protrudes 32px left
 export default function EntradaCard({ onConfigure, savedSegmentacao, forceCollapsed }: EntradaCardProps) {
-  const [expanded, setExpanded] = useState(true);
   const isSaved = Boolean(savedSegmentacao);
-  const bodyVisible = expanded && !forceCollapsed;
+  const bodyVisible = !forceCollapsed;
 
   return (
     <div
@@ -87,20 +68,6 @@ export default function EntradaCard({ onConfigure, savedSegmentacao, forceCollap
           className={`relative z-10 flex items-center gap-[8px] bg-entrada-bg py-[10px] pl-[26px] pr-[12px] w-[324px] ${bodyVisible ? "rounded-tl-[8px] rounded-tr-[8px]" : "rounded-[8px]"}`}
         >
           <span className="flex-1 text-base font-semibold text-white whitespace-nowrap">Entrada</span>
-          <button
-            onClick={onConfigure}
-            title="Editar"
-            className="shrink-0 opacity-80 hover:opacity-100 transition-opacity"
-          >
-            <IcPencil />
-          </button>
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            title={expanded ? "Recolher" : "Expandir"}
-            className="shrink-0 opacity-80 hover:opacity-100 transition-opacity"
-          >
-            {expanded && !forceCollapsed ? <IcChevronUp /> : <IcChevronDown />}
-          </button>
         </div>
 
         {/* Card body */}

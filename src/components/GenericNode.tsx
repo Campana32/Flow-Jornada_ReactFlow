@@ -14,6 +14,7 @@ export interface GenericNodeData {
   label: string;
   fields: GenericNodeFieldData[];
   aguardarData?: { quantidade: number; unidade: "Minutos" | "Horas" | "Dias" };
+  jornadaData?: { jornada: string };
 }
 
 interface GenericNodeProps {

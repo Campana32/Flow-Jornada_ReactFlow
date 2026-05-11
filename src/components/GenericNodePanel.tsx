@@ -168,7 +168,7 @@ export default function GenericNodePanel({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-[20px] flex flex-col gap-[20px]">
+      <div className="flex-1 min-h-0 overflow-y-auto p-[20px] flex flex-col gap-[20px]">
         {/* Provedor */}
         <Field label="Selecione o provedor de serviços" required>
           <div className="relative">

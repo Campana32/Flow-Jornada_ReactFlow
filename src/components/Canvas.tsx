@@ -17,16 +17,24 @@ import EdicaoPropriedadePanel from "./EdicaoPropriedadePanel";
 import type { EdicaoPropriedadeNodeData } from "./EdicaoPropriedadePanel";
 import WebhooksPanel from "./WebhooksPanel";
 import type { WebhooksNodeData } from "./WebhooksPanel";
-import DesisncreverPanel from "./DesisncreverPanel";
-import type { DesisncreverNodeData } from "./DesisncreverPanel";
+import SmsPanel from "./SmsPanel";
+import type { SmsNodeData } from "./SmsPanel";
+import MobilePushPanel from "./MobilePushPanel";
+import type { MobilePushNodeData } from "./MobilePushPanel";
+import WhatsAppPanel from "./WhatsAppPanel";
+import type { WhatsAppNodeData } from "./WhatsAppPanel";
+import WebPushPanel from "./WebPushPanel";
+import type { WebPushNodeData } from "./WebPushPanel";
+import DesisncreverCardNode from "./DesisncreverCardNode";
 import AguardarCardNode from "./AguardarCardNode";
 import type { AguardarNodeData } from "./AguardarCardNode";
-import AdicionarJornadaPanel from "./AdicionarJornadaPanel";
-import type { AdicionarJornadaNodeData } from "./AdicionarJornadaPanel";
+import JornadaCardNode from "./JornadaCardNode";
+import type { JornadaCardNodeData } from "./JornadaCardNode";
 import SegmentacaoNoPanel from "./SegmentacaoNoPanel";
 import type { SegmentacaoNoNodeData } from "./SegmentacaoNoPanel";
 import TesteABPanel from "./TesteABPanel";
-import type { TesteABNodeData } from "./TesteABPanel";
+import TesteABCardNode from "./TesteABCardNode";
+import type { TesteABCardNodeData } from "./TesteABCardNode";
 
 // Canvas nodes
 import GenericNode from "./GenericNode";
@@ -45,16 +53,23 @@ type ActivePanel =
   | "webPushConfig"
   | "edicaoConfig"
   | "webhooksConfig"
-  | "desisncreverConfig"
-  | "jornadaConfig"
   | "segmentacaoConfig"
   | "testeABConfig";
+
+interface BranchChain {
+  id: string;
+  label: string;
+  color: string;
+  percentual: number;
+  nodes: SavedNode[];
+}
 
 interface SavedNode {
   id: string;
   data: GenericNodeData;
   panelType: string;
   rawData?: unknown;
+  branches?: BranchChain[];
 }
 
 let _idCounter = 0;
@@ -131,6 +146,9 @@ export default function Canvas() {
   const [savedNodes, setSavedNodes] = useState<SavedNode[]>([]);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [pendingAguardar, setPendingAguardar] = useState(false);
+  const [pendingJornada, setPendingJornada] = useState(false);
+  const [branchContext, setBranchContext] = useState<{ parentNodeId: string; branchIdx: number } | null>(null);
+  const [pendingBranchNode, setPendingBranchNode] = useState<{ type: "aguardar" | "jornada"; parentNodeId: string; branchIdx: number } | null>(null);
 
   /* ── Viewport state ── */
   const [viewport, setViewport] = useState({ zoom: 1, pan: { x: 0, y: 0 } });
@@ -223,13 +241,20 @@ export default function Canvas() {
   const handleClosePanel = () => {
     setActivePanel("none");
     setEditingNodeId(null);
+    setBranchContext(null);
   };
 
   const removeHandler = editingNodeId
     ? () => { handleRemoveNode(editingNodeId); handleClosePanel(); }
     : undefined;
 
-  const editingNode = editingNodeId ? savedNodes.find((n) => n.id === editingNodeId) : null;
+  const editingNode = editingNodeId
+    ? branchContext
+      ? savedNodes
+          .find((n) => n.id === branchContext.parentNodeId)
+          ?.branches?.[branchContext.branchIdx]?.nodes.find((bn) => bn.id === editingNodeId) ?? null
+      : savedNodes.find((n) => n.id === editingNodeId) ?? null
+    : null;
 
   const handleAdd = (segmentacao: string) => {
     setSavedSegmentacao(segmentacao);
@@ -238,7 +263,47 @@ export default function Canvas() {
 
   const handleNodeSelect = (type: string) => {
     if (type === "aguardar") {
-      setPendingAguardar(true);
+      if (branchContext) {
+        setPendingBranchNode({ type: "aguardar", ...branchContext });
+        setBranchContext(null);
+      } else {
+        setPendingAguardar(true);
+      }
+      setActivePanel("none");
+      return;
+    }
+    if (type === "jornadaOutra") {
+      if (branchContext) {
+        setPendingBranchNode({ type: "jornada", ...branchContext });
+        setBranchContext(null);
+      } else {
+        setPendingJornada(true);
+      }
+      setActivePanel("none");
+      return;
+    }
+    if (type === "desisncrever") {
+      const newNode: SavedNode = {
+        id: uid(),
+        panelType: "desisncrever",
+        data: {
+          type: "desisncrever",
+          color: nodeColors.desisncrever,
+          icon: nodeIcon("desisncrever"),
+          label: nodeLabels.desisncrever,
+          fields: [],
+        },
+      };
+      if (branchContext) {
+        const { parentNodeId, branchIdx } = branchContext;
+        setSavedNodes((prev) => prev.map((n) => {
+          if (n.id !== parentNodeId || !n.branches) return n;
+          return { ...n, branches: n.branches.map((b, bi) => bi === branchIdx ? { ...b, nodes: [...b.nodes, newNode] } : b) };
+        }));
+        setBranchContext(null);
+      } else {
+        setSavedNodes((prev) => [...prev, newNode]);
+      }
       setActivePanel("none");
       return;
     }
@@ -250,8 +315,6 @@ export default function Canvas() {
       webPush: "webPushConfig",
       edicaoProp: "edicaoConfig",
       webhooks: "webhooksConfig",
-      desisncrever: "desisncreverConfig",
-      jornadaOutra: "jornadaConfig",
       segmentacao: "segmentacaoConfig",
       testeAB: "testeABConfig",
     };
@@ -259,15 +322,34 @@ export default function Canvas() {
     if (panel) setActivePanel(panel);
   };
 
-  const handleEditNode = (nodeId: string) => {
-    const node = savedNodes.find((n) => n.id === nodeId);
+  const handleEditNode = (nodeId: string, ctx?: { parentNodeId: string; branchIdx: number }) => {
+    if (ctx) setBranchContext(ctx);
+    const node = ctx
+      ? savedNodes.find((n) => n.id === ctx.parentNodeId)?.branches?.[ctx.branchIdx]?.nodes.find((bn) => bn.id === nodeId)
+      : savedNodes.find((n) => n.id === nodeId);
     if (!node) return;
     setEditingNodeId(nodeId);
     handleNodeSelect(node.panelType);
   };
 
   function pushOrUpdateNode(data: GenericNodeData, panelType: string, rawData?: unknown) {
-    if (editingNodeId) {
+    if (branchContext) {
+      const { parentNodeId, branchIdx } = branchContext;
+      setSavedNodes((prev) =>
+        prev.map((n) => {
+          if (n.id !== parentNodeId || !n.branches) return n;
+          const branches = n.branches.map((b, bi) => {
+            if (bi !== branchIdx) return b;
+            if (editingNodeId) {
+              return { ...b, nodes: b.nodes.map((bn) => (bn.id === editingNodeId ? { ...bn, data, panelType, rawData } : bn)) };
+            }
+            return { ...b, nodes: [...b.nodes, { id: uid(), data, panelType, rawData }] };
+          });
+          return { ...n, branches };
+        })
+      );
+      setBranchContext(null);
+    } else if (editingNodeId) {
       setSavedNodes((prev) =>
         prev.map((n) => (n.id === editingNodeId ? { ...n, data, panelType, rawData } : n))
       );
@@ -277,6 +359,58 @@ export default function Canvas() {
     setActivePanel("none");
     setEditingNodeId(null);
   }
+
+  const handleWebPushAdd = (raw: WebPushNodeData) => {
+    pushOrUpdateNode({
+      type: "webPush",
+      color: nodeColors.webPush,
+      icon: nodeIcon("webPush"),
+      label: nodeLabels.webPush,
+      fields: [
+        { key: "Nome:", value: raw.nome || "—" },
+        { key: "Tipo:", value: raw.tipoMensagem === "unica" ? "Mensagem única" : "Teste A/B" },
+      ],
+    }, "webPush", raw);
+  };
+
+  const handleWhatsAppAdd = (raw: WhatsAppNodeData) => {
+    pushOrUpdateNode({
+      type: "whatsapp",
+      color: nodeColors.whatsapp,
+      icon: nodeIcon("whatsapp"),
+      label: nodeLabels.whatsapp,
+      fields: [
+        { key: "Nome:", value: raw.nome || "—" },
+        { key: "Tipo:", value: raw.tipoMensagem === "unica" ? "Mensagem única" : "Teste A/B" },
+      ],
+    }, "whatsapp", raw);
+  };
+
+  const handleMobilePushAdd = (raw: MobilePushNodeData) => {
+    pushOrUpdateNode({
+      type: "mobilePush",
+      color: nodeColors.mobilePush,
+      icon: nodeIcon("mobilePush"),
+      label: nodeLabels.mobilePush,
+      fields: [
+        { key: "Nome:", value: raw.nome || "—" },
+        { key: "Tipo:", value: raw.tipoMensagem === "unica" ? "Mensagem única" : "Teste A/B" },
+      ],
+    }, "mobilePush", raw);
+  };
+
+  const handleSmsAdd = (raw: SmsNodeData) => {
+    pushOrUpdateNode({
+      type: "sms",
+      color: nodeColors.sms,
+      icon: nodeIcon("sms"),
+      label: nodeLabels.sms,
+      fields: [
+        { key: "Nome:", value: raw.nome || "—" },
+        { key: "Tipo:", value: raw.tipoMensagem === "unica" ? "Mensagem única" : "Teste A/B" },
+      ],
+    }, "sms", raw);
+  };
 
   const handleEmailAdd = (raw: EmailNodeData) => {
     pushOrUpdateNode({
@@ -314,18 +448,11 @@ export default function Canvas() {
       color: nodeColors.webhooks,
       icon: nodeIcon("webhooks"),
       label: nodeLabels.webhooks,
-      fields: [{ key: "Método:", value: raw.metodo }],
+      fields: [
+        { key: "Nome:", value: raw.nome || "—" },
+        { key: "Método:", value: raw.metodo },
+      ],
     }, "webhooks", raw);
-  };
-
-  const handleDesisncreverAdd = (_raw: DesisncreverNodeData) => {
-    pushOrUpdateNode({
-      type: "desisncrever",
-      color: nodeColors.desisncrever,
-      icon: nodeIcon("desisncrever"),
-      label: nodeLabels.desisncrever,
-      fields: [],
-    }, "desisncrever", _raw);
   };
 
   const handleAguardarConfirm = (raw: AguardarNodeData) => {
@@ -364,18 +491,142 @@ export default function Canvas() {
     );
   };
 
-  const handleRemoveNode = (nodeId: string) => {
-    setSavedNodes((prev) => prev.filter((n) => n.id !== nodeId));
+  // Branch-specific helpers for inline card nodes
+  const addBranchInlineNode = (parentNodeId: string, branchIdx: number, node: SavedNode) => {
+    setSavedNodes((prev) => prev.map((n) => {
+      if (n.id !== parentNodeId || !n.branches) return n;
+      return { ...n, branches: n.branches.map((b, bi) => bi === branchIdx ? { ...b, nodes: [...b.nodes, node] } : b) };
+    }));
+    setPendingBranchNode(null);
   };
 
-  const handleJornadaAdd = (raw: AdicionarJornadaNodeData) => {
-    pushOrUpdateNode({
-      type: "jornadaOutra",
-      color: nodeColors.jornadaOutra,
-      icon: nodeIcon("jornadaOutra"),
-      label: nodeLabels.jornadaOutra,
-      fields: [{ key: "Redirecionar para:", value: raw.jornada || "—" }],
-    }, "jornadaOutra", raw);
+  const updateBranchInlineNode = (parentNodeId: string, branchIdx: number, nodeId: string, updater: (n: SavedNode) => SavedNode) => {
+    setSavedNodes((prev) => prev.map((n) => {
+      if (n.id !== parentNodeId || !n.branches) return n;
+      return { ...n, branches: n.branches.map((b, bi) => bi === branchIdx ? { ...b, nodes: b.nodes.map((bn) => bn.id === nodeId ? updater(bn) : bn) } : b) };
+    }));
+  };
+
+  const handleBranchAguardarConfirm = (parentNodeId: string, branchIdx: number, raw: AguardarNodeData) => {
+    addBranchInlineNode(parentNodeId, branchIdx, {
+      id: uid(),
+      panelType: "aguardar",
+      data: {
+        type: "aguardar",
+        color: nodeColors.aguardar,
+        icon: nodeIcon("aguardar"),
+        label: nodeLabels.aguardar,
+        fields: [{ key: "Duração:", value: `${raw.quantidade} ${raw.unidade}` }],
+        aguardarData: raw,
+      },
+    });
+  };
+
+  const handleBranchJornadaConfirm = (parentNodeId: string, branchIdx: number, raw: JornadaCardNodeData) => {
+    addBranchInlineNode(parentNodeId, branchIdx, {
+      id: uid(),
+      panelType: "jornadaOutra",
+      data: {
+        type: "jornadaOutra",
+        color: nodeColors.jornadaOutra,
+        icon: nodeIcon("jornadaOutra"),
+        label: nodeLabels.jornadaOutra,
+        fields: [{ key: "Redirecionar para:", value: raw.jornada }],
+        jornadaData: raw,
+      },
+    });
+  };
+
+  const handleRemoveNode = (nodeId: string) => {
+    setSavedNodes((prev) => {
+      if (prev.some((n) => n.id === nodeId)) return prev.filter((n) => n.id !== nodeId);
+      return prev.map((n) => {
+        if (!n.branches) return n;
+        return { ...n, branches: n.branches.map((b) => ({ ...b, nodes: b.nodes.filter((bn) => bn.id !== nodeId) })) };
+      });
+    });
+  };
+
+  const handleTesteABAdd = (raw: TesteABCardNodeData) => {
+    const nodeData = {
+      type: "testeAB",
+      color: nodeColors.testeAB,
+      icon: nodeIcon("testeAB"),
+      label: nodeLabels.testeAB,
+      fields: [{ key: "Variantes:", value: `${raw.variantes.length} variantes` }],
+    };
+    if (editingNodeId) {
+      setSavedNodes((prev) =>
+        prev.map((n) => {
+          if (n.id !== editingNodeId) return n;
+          const existing = n.branches ?? [];
+          const branches = raw.variantes.map((v, i) => ({
+            id: existing[i]?.id ?? uid(),
+            label: v.label,
+            color: v.color,
+            percentual: v.percentual,
+            nodes: existing[i]?.nodes ?? [],
+          }));
+          return { ...n, data: nodeData, rawData: raw, branches };
+        })
+      );
+      setActivePanel("none");
+      setEditingNodeId(null);
+    } else {
+      setSavedNodes((prev) => [
+        ...prev,
+        {
+          id: uid(),
+          panelType: "testeAB",
+          data: nodeData,
+          rawData: raw,
+          branches: raw.variantes.map((v) => ({
+            id: uid(),
+            label: v.label,
+            color: v.color,
+            percentual: v.percentual,
+            nodes: [],
+          })),
+        },
+      ]);
+      setActivePanel("none");
+    }
+  };
+
+  const handleJornadaConfirm = (raw: JornadaCardNodeData) => {
+    setSavedNodes((prev) => [
+      ...prev,
+      {
+        id: uid(),
+        panelType: "jornadaOutra",
+        data: {
+          type: "jornadaOutra",
+          color: nodeColors.jornadaOutra,
+          icon: nodeIcon("jornadaOutra"),
+          label: nodeLabels.jornadaOutra,
+          fields: [{ key: "Redirecionar para:", value: raw.jornada }],
+          jornadaData: raw,
+        },
+      },
+    ]);
+    setPendingJornada(false);
+  };
+
+  const handleJornadaUpdate = (nodeId: string, raw: JornadaCardNodeData) => {
+    setSavedNodes((prev) =>
+      prev.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                fields: [{ key: "Redirecionar para:", value: raw.jornada }],
+                jornadaData: raw,
+              },
+            }
+          : n
+      )
+    );
   };
 
   const handleSegmentacaoAdd = (raw: SegmentacaoNoNodeData) => {
@@ -388,16 +639,6 @@ export default function Canvas() {
     }, "segmentacao", raw);
   };
 
-  const handleTesteABAdd = (_raw: TesteABNodeData) => {
-    pushOrUpdateNode({
-      type: "testeAB",
-      color: nodeColors.testeAB,
-      icon: nodeIcon("testeAB"),
-      label: nodeLabels.testeAB,
-      fields: [{ key: "Variantes:", value: "2 variantes" }],
-    }, "testeAB", _raw);
-  };
-
   const autoCollapsed = viewport.zoom <= 0.6;
 
   /* ── Node positioning (cumulative, respects per-node widths) ── */
@@ -405,11 +646,19 @@ export default function Canvas() {
   const NODE_GAP = 64;   // space between nodes (for connector line + add button)
   const NODE_WIDTH = 260; // default GenericNode width
   const AGUARDAR_WIDTH = 352; // badge(44) - overlap(16) + bar(324) = 352
+  const DESISNCREVER_WIDTH = 325; // badge(44) - overlap(16) + bar(297) = 325
+  const JORNADA_WIDTH = 352; // badge(44) - overlap(16) + bar(324) = 352
+  const TESTA_B_WIDTH = 352; // badge(44) - overlap(16) + bar(324) = 352
   const topTransform = "translateY(-50%) translateY(41px)";
   const totalNodes = savedNodes.length;
 
-  const nodeWidthOf = (node: SavedNode) =>
-    node.data.type === "aguardar" ? AGUARDAR_WIDTH : NODE_WIDTH;
+  const nodeWidthOf = (node: SavedNode) => {
+    if (node.data.type === "aguardar") return AGUARDAR_WIDTH;
+    if (node.data.type === "desisncrever") return DESISNCREVER_WIDTH;
+    if (node.data.type === "jornadaOutra") return JORNADA_WIDTH;
+    if (node.data.type === "testeAB") return TESTA_B_WIDTH;
+    return NODE_WIDTH;
+  };
 
   // Build cumulative left positions for each saved node
   const nodePositions: number[] = [];
@@ -434,7 +683,7 @@ export default function Canvas() {
 
   const getConnectorRight = (idx: number) => {
     if (idx + 1 < totalNodes) return getNodeLeft(idx + 1);
-    if (pendingAguardar) return pendingAguardarLeft;
+    if (pendingAguardar || pendingJornada) return pendingAguardarLeft;
     return getConnectorLeft(idx) + 72; // trailing dashed connector
   };
 
@@ -498,7 +747,7 @@ export default function Canvas() {
         />
 
         {/* No nodes yet and no pending */}
-        {totalNodes === 0 && !pendingAguardar && activePanel !== "configurar" && (
+        {totalNodes === 0 && !pendingAguardar && !pendingJornada && activePanel !== "configurar" && (
           <>
             <DashedConnector
               style={{ left: "376px", top: "50%", transform: topTransform, width: "72px" }}
@@ -511,8 +760,8 @@ export default function Canvas() {
           </>
         )}
 
-        {/* Nodes exist OR pending aguardar */}
-        {(totalNodes > 0 || pendingAguardar) && (
+        {/* Nodes exist OR pending */}
+        {(totalNodes > 0 || pendingAguardar || pendingJornada) && (
           <>
             <SolidConnector
               style={{ left: "376px", top: "50%", transform: topTransform, width: "124px" }}
@@ -531,6 +780,28 @@ export default function Canvas() {
                     forceCollapsed={autoCollapsed}
                     onConfirm={(data) => handleAguardarUpdate(node.id, data)}
                     onCancel={() => {}}
+                    onRemove={() => handleRemoveNode(node.id)}
+                  />
+                ) : node.data.type === "desisncrever" ? (
+                  <DesisncreverCardNode
+                    style={{ left: `${getNodeLeft(idx)}px` }}
+                    onRemove={() => handleRemoveNode(node.id)}
+                  />
+                ) : node.data.type === "jornadaOutra" ? (
+                  <JornadaCardNode
+                    initialData={node.data.jornadaData}
+                    style={{ left: `${getNodeLeft(idx)}px` }}
+                    forceCollapsed={autoCollapsed}
+                    onConfirm={(data) => handleJornadaUpdate(node.id, data)}
+                    onCancel={() => {}}
+                    onRemove={() => handleRemoveNode(node.id)}
+                  />
+                ) : node.data.type === "testeAB" ? (
+                  <TesteABCardNode
+                    initialData={node.rawData as TesteABCardNodeData | undefined}
+                    style={{ left: `${getNodeLeft(idx)}px` }}
+                    forceCollapsed={autoCollapsed}
+                    onEdit={() => handleEditNode(node.id)}
                     onRemove={() => handleRemoveNode(node.id)}
                   />
                 ) : (
@@ -561,7 +832,13 @@ export default function Canvas() {
                       onClick={handleOpenAdicionarNo}
                     />
                   </>
-                ) : !pendingAguardar ? (
+                ) : node.branches ? (
+                  // Split node — branches are rendered separately below
+                  null
+                ) : node.data.type === "desisncrever" ? (
+                  // Desisncrever ends the flow — no add button
+                  null
+                ) : !pendingAguardar && !pendingJornada ? (
                   <>
                     <DashedConnector
                       style={{
@@ -582,7 +859,6 @@ export default function Canvas() {
                     />
                   </>
                 ) : (
-                  // Connector from last saved node to the pending aguardar
                   <SolidConnector
                     style={{
                       left: `${getConnectorLeft(idx)}px`,
@@ -605,6 +881,210 @@ export default function Canvas() {
                 onRemove={() => setPendingAguardar(false)}
               />
             )}
+
+            {/* Pending jornada node (being configured inline) */}
+            {pendingJornada && (
+              <JornadaCardNode
+                isNew
+                style={{ left: `${pendingAguardarLeft}px` }}
+                onConfirm={handleJornadaConfirm}
+                onCancel={() => setPendingJornada(false)}
+                onRemove={() => setPendingJornada(false)}
+              />
+            )}
+
+            {/* ── Branch rails for split nodes ── */}
+            {savedNodes.map((node) => {
+              if (!node.branches || node.branches.length === 0) return null;
+              const N = node.branches.length;
+              const splitIdx = savedNodes.indexOf(node);
+              const splitLeft = getNodeLeft(splitIdx);
+              const splitW = nodeWidthOf(node);
+              const splitRight = splitLeft + splitW;
+              const juncX = splitRight + 24;
+              const branchStartX = juncX + 40;
+              const BSPC = 220;
+
+              return (
+                <div key={`branches-${node.id}`}>
+                  {/* Horizontal stub to junction */}
+                  <SolidConnector style={{ left: `${splitRight}px`, top: "50%", transform: topTransform, width: `${juncX - splitRight}px` }} />
+
+                  {/* Vertical bar spanning all branches */}
+                  {N > 1 && (
+                    <div style={{
+                      position: "absolute",
+                      left: `${juncX}px`,
+                      top: "50%",
+                      transform: `translateY(calc(-50% + 41px))`,
+                      width: 2,
+                      height: (N - 1) * BSPC,
+                      background: "#9ca3af",
+                    }} />
+                  )}
+
+                  {node.branches.map((branch, bi) => {
+                    const yo = (bi - (N - 1) / 2) * BSPC;
+                    const branchTransform = `translateY(calc(-50% + ${41 + yo}px))`;
+
+                    // Branch node positions
+                    const branchPositions: number[] = [];
+                    let bx = branchStartX;
+                    for (const bn of branch.nodes) {
+                      branchPositions.push(bx);
+                      bx += nodeWidthOf(bn) + NODE_GAP;
+                    }
+                    const lastRight = branch.nodes.length > 0
+                      ? branchPositions[branch.nodes.length - 1] + nodeWidthOf(branch.nodes[branch.nodes.length - 1])
+                      : branchStartX;
+
+                    return (
+                      <div key={branch.id}>
+                        {/* Horizontal connector from vertical bar to first node */}
+                        <div style={{
+                          position: "absolute",
+                          left: `${juncX + 2}px`,
+                          top: "50%",
+                          transform: branchTransform,
+                          width: branchStartX - juncX - 2,
+                          height: 2,
+                          background: "#9ca3af",
+                        }} />
+
+                        {/* Branch label chip */}
+                        <div style={{
+                          position: "absolute",
+                          left: `${branchStartX}px`,
+                          top: "50%",
+                          transform: `translateY(calc(-50% + ${41 + yo - 22}px))`,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          background: `${branch.color}20`,
+                          border: `1px solid ${branch.color}60`,
+                          borderRadius: 99,
+                          padding: "2px 8px",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "#343b44",
+                          whiteSpace: "nowrap",
+                          pointerEvents: "none",
+                          userSelect: "none",
+                        }}>
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: branch.color, flexShrink: 0 }} />
+                          {branch.label} · {branch.percentual}%
+                        </div>
+
+                        {/* Branch nodes */}
+                        {branch.nodes.map((branchNode, bni) => {
+                          const bStyle = { left: `${branchPositions[bni]}px`, top: "50%", transform: branchTransform };
+                          const isLast = bni === branch.nodes.length - 1;
+                          const hasPending = isLast && pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi;
+                          return (
+                            <div key={branchNode.id}>
+                              {branchNode.data.type === "aguardar" ? (
+                                <AguardarCardNode
+                                  initialData={branchNode.data.aguardarData}
+                                  style={bStyle}
+                                  forceCollapsed={autoCollapsed}
+                                  onConfirm={(data) => updateBranchInlineNode(node.id, bi, branchNode.id, (n) => ({ ...n, data: { ...n.data, fields: [{ key: "Duração:", value: `${data.quantidade} ${data.unidade}` }], aguardarData: data } }))}
+                                  onCancel={() => {}}
+                                  onRemove={() => handleRemoveNode(branchNode.id)}
+                                />
+                              ) : branchNode.data.type === "desisncrever" ? (
+                                <DesisncreverCardNode
+                                  style={bStyle}
+                                  onRemove={() => handleRemoveNode(branchNode.id)}
+                                />
+                              ) : branchNode.data.type === "jornadaOutra" ? (
+                                <JornadaCardNode
+                                  initialData={branchNode.data.jornadaData}
+                                  style={bStyle}
+                                  forceCollapsed={autoCollapsed}
+                                  onConfirm={(data) => updateBranchInlineNode(node.id, bi, branchNode.id, (n) => ({ ...n, data: { ...n.data, fields: [{ key: "Redirecionar para:", value: data.jornada }], jornadaData: data } }))}
+                                  onCancel={() => {}}
+                                  onRemove={() => handleRemoveNode(branchNode.id)}
+                                />
+                              ) : (
+                                <GenericNode
+                                  data={branchNode.data}
+                                  onEdit={() => handleEditNode(branchNode.id, { parentNodeId: node.id, branchIdx: bi })}
+                                  style={bStyle}
+                                  forceCollapsed={autoCollapsed}
+                                />
+                              )}
+                              {!isLast ? (
+                                <SolidConnector style={{
+                                  left: `${branchPositions[bni] + nodeWidthOf(branchNode)}px`,
+                                  top: "50%",
+                                  transform: branchTransform,
+                                  width: `${branchPositions[bni + 1] - branchPositions[bni] - nodeWidthOf(branchNode)}px`,
+                                }} />
+                              ) : branchNode.data.type === "desisncrever" ? (
+                                // Desisncrever ends this branch — no add button
+                                null
+                              ) : hasPending ? (
+                                <SolidConnector style={{ left: `${lastRight}px`, top: "50%", transform: branchTransform, width: `${NODE_GAP}px` }} />
+                              ) : (
+                                <>
+                                  <DashedConnector style={{ left: `${lastRight}px`, top: "50%", transform: branchTransform, width: "72px" }} />
+                                  <AddNodeButton
+                                    active={true}
+                                    onClick={() => { setBranchContext({ parentNodeId: node.id, branchIdx: bi }); handleOpenAdicionarNo(); }}
+                                    style={{ left: `${lastRight + 72}px`, top: "50%", transform: branchTransform }}
+                                  />
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {/* Pending inline node (aguardar / jornada) in this branch */}
+                        {(() => {
+                          const pbn = pendingBranchNode;
+                          if (!pbn || pbn.parentNodeId !== node.id || pbn.branchIdx !== bi) return null;
+                          const pendingLeft = branch.nodes.length > 0 ? lastRight + NODE_GAP : branchStartX;
+                          const pStyle = { left: `${pendingLeft}px`, top: "50%", transform: branchTransform };
+                          return pbn.type === "aguardar" ? (
+                            <AguardarCardNode
+                              isNew
+                              style={pStyle}
+                              onConfirm={(data) => handleBranchAguardarConfirm(node.id, bi, data)}
+                              onCancel={() => setPendingBranchNode(null)}
+                              onRemove={() => setPendingBranchNode(null)}
+                            />
+                          ) : (
+                            <JornadaCardNode
+                              isNew
+                              style={pStyle}
+                              onConfirm={(data) => handleBranchJornadaConfirm(node.id, bi, data)}
+                              onCancel={() => setPendingBranchNode(null)}
+                              onRemove={() => setPendingBranchNode(null)}
+                            />
+                          );
+                        })()}
+
+                        {/* Empty branch — show add button (unless pending) */}
+                        {branch.nodes.length === 0 && !pendingBranchNode && (
+                          <>
+                            <DashedConnector style={{ left: `${branchStartX}px`, top: "50%", transform: branchTransform, width: "72px" }} />
+                            <AddNodeButton
+                              active={true}
+                              onClick={() => { setBranchContext({ parentNodeId: node.id, branchIdx: bi }); handleOpenAdicionarNo(); }}
+                              style={{ left: `${branchStartX + 72}px`, top: "50%", transform: branchTransform }}
+                            />
+                          </>
+                        )}
+                        {/* Empty branch with pending — solid connector */}
+                        {branch.nodes.length === 0 && pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi && (
+                          <SolidConnector style={{ left: `${branchStartX - NODE_GAP}px`, top: "50%", transform: branchTransform, width: `${NODE_GAP}px` }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </>
         )}
       </div>
@@ -624,47 +1104,35 @@ export default function Canvas() {
         <EnvioEmailPanel onClose={handleClosePanel} onAdd={handleEmailAdd} onRemove={removeHandler} initialData={editingNode?.rawData as EmailNodeData | undefined} />
       )}
       {activePanel === "smsConfig" && (
-        <GenericNodePanel
-          color={nodeColors.sms}
-          icon={envioIcon("sms")}
-          title={nodeLabels.sms}
+        <SmsPanel
           onClose={handleClosePanel}
-          onAdd={handleGenericEnvioAdd("sms")}
+          onAdd={handleSmsAdd}
           onRemove={removeHandler}
-          initialData={editingNode?.rawData as GenericPanelData | undefined}
+          initialData={editingNode?.rawData as SmsNodeData | undefined}
         />
       )}
       {activePanel === "whatsappConfig" && (
-        <GenericNodePanel
-          color={nodeColors.whatsapp}
-          icon={envioIcon("whatsapp")}
-          title={nodeLabels.whatsapp}
+        <WhatsAppPanel
           onClose={handleClosePanel}
-          onAdd={handleGenericEnvioAdd("whatsapp")}
+          onAdd={handleWhatsAppAdd}
           onRemove={removeHandler}
-          initialData={editingNode?.rawData as GenericPanelData | undefined}
+          initialData={editingNode?.rawData as WhatsAppNodeData | undefined}
         />
       )}
       {activePanel === "mobilePushConfig" && (
-        <GenericNodePanel
-          color={nodeColors.mobilePush}
-          icon={envioIcon("mobilePush")}
-          title={nodeLabels.mobilePush}
+        <MobilePushPanel
           onClose={handleClosePanel}
-          onAdd={handleGenericEnvioAdd("mobilePush")}
+          onAdd={handleMobilePushAdd}
           onRemove={removeHandler}
-          initialData={editingNode?.rawData as GenericPanelData | undefined}
+          initialData={editingNode?.rawData as MobilePushNodeData | undefined}
         />
       )}
       {activePanel === "webPushConfig" && (
-        <GenericNodePanel
-          color={nodeColors.webPush}
-          icon={envioIcon("webPush")}
-          title={nodeLabels.webPush}
+        <WebPushPanel
           onClose={handleClosePanel}
-          onAdd={handleGenericEnvioAdd("webPush")}
+          onAdd={handleWebPushAdd}
           onRemove={removeHandler}
-          initialData={editingNode?.rawData as GenericPanelData | undefined}
+          initialData={editingNode?.rawData as WebPushNodeData | undefined}
         />
       )}
       {activePanel === "edicaoConfig" && (
@@ -673,17 +1141,11 @@ export default function Canvas() {
       {activePanel === "webhooksConfig" && (
         <WebhooksPanel onClose={handleClosePanel} onAdd={handleWebhooksAdd} onRemove={removeHandler} initialData={editingNode?.rawData as WebhooksNodeData | undefined} />
       )}
-      {activePanel === "desisncreverConfig" && (
-        <DesisncreverPanel onClose={handleClosePanel} onAdd={handleDesisncreverAdd} onRemove={removeHandler} />
-      )}
-      {activePanel === "jornadaConfig" && (
-        <AdicionarJornadaPanel onClose={handleClosePanel} onAdd={handleJornadaAdd} onRemove={removeHandler} initialData={editingNode?.rawData as AdicionarJornadaNodeData | undefined} />
-      )}
       {activePanel === "segmentacaoConfig" && (
         <SegmentacaoNoPanel onClose={handleClosePanel} onAdd={handleSegmentacaoAdd} onRemove={removeHandler} initialData={editingNode?.rawData as SegmentacaoNoNodeData | undefined} />
       )}
       {activePanel === "testeABConfig" && (
-        <TesteABPanel onClose={handleClosePanel} onAdd={handleTesteABAdd} onRemove={removeHandler} initialData={editingNode?.rawData as TesteABNodeData | undefined} />
+        <TesteABPanel onClose={handleClosePanel} onAdd={handleTesteABAdd} onRemove={removeHandler} initialData={editingNode?.rawData as TesteABCardNodeData | undefined} />
       )}
 
       {/* ── Zoom control (outside transform) ── */}
