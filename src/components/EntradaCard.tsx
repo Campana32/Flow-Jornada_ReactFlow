@@ -1,17 +1,15 @@
 "use client";
 
-
 interface EntradaCardProps {
   onConfigure: () => void;
   savedSegmentacao?: string;
   forceCollapsed?: boolean;
 }
 
-
 function IconEntrada() {
   return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M23.333 14H4.667M4.667 14L11.667 7M4.667 14L11.667 21" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M23.333 14H4.667M4.667 14L11.667 7M4.667 14L11.667 21" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -42,7 +40,6 @@ function FilterRow({ label, values }: { label: string; values: string[] }) {
   );
 }
 
-// icon: 48px outer (p-8 + 28 content + border-2), overlaps header 16px → protrudes 32px left
 export default function EntradaCard({ onConfigure, savedSegmentacao, forceCollapsed }: EntradaCardProps) {
   const isSaved = Boolean(savedSegmentacao);
   const bodyVisible = !forceCollapsed;
@@ -50,53 +47,40 @@ export default function EntradaCard({ onConfigure, savedSegmentacao, forceCollap
   return (
     <div
       className="absolute"
-      style={{ left: '24px', top: '50%', transform: 'translateY(-50%) translateY(41px)' }}
+      style={{ left: "24px", top: "50%", transform: "translateY(-50%) translateY(41px)" }}
     >
-      <div className="relative" style={{ marginLeft: '32px' }}>
-        {/* Icon */}
-        <div
-          className="absolute z-20 flex items-center bg-entrada-bg border-2 border-white rounded-[8px] p-[8px] shrink-0"
-          style={{ left: '-48px', top: '0' }}
-        >
-          <div className="size-[28px] flex items-center justify-center">
+      <div className="flex flex-col items-end isolate relative">
+
+        {/* Badge + header row */}
+        <div className="flex items-center isolate relative shrink-0 z-[2]">
+          {/* Badge */}
+          <div
+            className="flex items-center justify-center p-[8px] rounded-[8px] border-2 border-white shrink-0 z-[2] mr-[-16px] bg-entrada-bg"
+            style={{ width: 44, height: 44 }}
+          >
             <IconEntrada />
+          </div>
+          {/* Green header bar */}
+          <div
+            className={`flex items-center pl-[26px] pr-[12px] py-[10px] w-[324px] z-[1] bg-entrada-bg ${bodyVisible ? "rounded-tl-[8px] rounded-tr-[8px]" : "rounded-[8px]"}`}
+          >
+            <span className="flex-1 text-base font-semibold text-white whitespace-nowrap">Entrada</span>
           </div>
         </div>
 
-        {/* Green header */}
-        <div
-          className={`relative z-10 flex items-center gap-[8px] bg-entrada-bg py-[10px] pl-[26px] pr-[12px] w-[324px] ${bodyVisible ? "rounded-tl-[8px] rounded-tr-[8px]" : "rounded-[8px]"}`}
-        >
-          <span className="flex-1 text-base font-semibold text-white whitespace-nowrap">Entrada</span>
-        </div>
-
-        {/* Card body */}
+        {/* Body */}
         {bodyVisible && isSaved ? (
-          /* ── Saved state: filter summary ── */
           <button
             onClick={onConfigure}
-            className="relative z-10 flex flex-col items-start justify-center bg-white rounded-bl-[8px] rounded-br-[8px] p-[16px] w-[324px] gap-[16px] text-left hover:bg-gray-50 transition-colors w-full"
+            className="flex flex-col items-start justify-center bg-white rounded-bl-[8px] rounded-br-[8px] p-[16px] w-[324px] gap-[16px] text-left hover:bg-gray-50 transition-colors z-[1]"
           >
-            <FilterRow
-              label="Segmentação"
-              values={[savedSegmentacao!]}
-            />
-            <FilterRow
-              label="Usuários que fizeram"
-              values={["Click", "Nos últimos", "7", "Dias"]}
-            />
-            <FilterRow
-              label="E não fez"
-              values={["open", "Depois do dia", "28/02/2026"]}
-            />
-            <FilterRow
-              label="E possui as propriedades"
-              values={["email_country", "não contém", "es"]}
-            />
+            <FilterRow label="Segmentação" values={[savedSegmentacao!]} />
+            <FilterRow label="Usuários que fizeram" values={["Click", "Nos últimos", "7", "Dias"]} />
+            <FilterRow label="E não fez" values={["open", "Depois do dia", "28/02/2026"]} />
+            <FilterRow label="E possui as propriedades" values={["email_country", "não contém", "es"]} />
           </button>
         ) : bodyVisible ? (
-          /* ── Initial state ── */
-          <div className="relative z-10 flex flex-col gap-[10px] items-center justify-center bg-white rounded-bl-[8px] rounded-br-[8px] p-[16px] w-[324px]">
+          <div className="flex flex-col gap-[10px] items-center justify-center bg-white rounded-bl-[8px] rounded-br-[8px] p-[16px] w-[324px] z-[1]">
             <p className="text-sm text-text-secondary text-center w-full leading-[20px]">
               Selecione uma ou mais segmentações, e defina de onde virão seus usuários.
             </p>
@@ -108,6 +92,7 @@ export default function EntradaCard({ onConfigure, savedSegmentacao, forceCollap
             </button>
           </div>
         ) : null}
+
       </div>
     </div>
   );
