@@ -32,6 +32,7 @@ import JornadaCardNode from "./JornadaCardNode";
 import type { JornadaCardNodeData } from "./JornadaCardNode";
 import SegmentacaoNoPanel from "./SegmentacaoNoPanel";
 import type { SegmentacaoNoNodeData } from "./SegmentacaoNoPanel";
+import SegmentacaoCardNode, { SEGMENTACAO_CARD_WIDTH } from "./SegmentacaoCardNode";
 import TesteABPanel from "./TesteABPanel";
 import TesteABCardNode from "./TesteABCardNode";
 import type { TesteABCardNodeData } from "./TesteABCardNode";
@@ -630,13 +631,36 @@ export default function Canvas() {
   };
 
   const handleSegmentacaoAdd = (raw: SegmentacaoNoNodeData) => {
-    pushOrUpdateNode({
+    const nodeData = {
       type: "segmentacao",
       color: nodeColors.segmentacao,
       icon: nodeIcon("segmentacao"),
       label: nodeLabels.segmentacao,
       fields: [{ key: "Segmentação:", value: raw.segmentacao || "—" }],
-    }, "segmentacao", raw);
+    };
+    if (editingNodeId) {
+      // preserve existing branches when editing
+      setSavedNodes((prev) =>
+        prev.map((n) => (n.id === editingNodeId ? { ...n, data: nodeData, rawData: raw } : n))
+      );
+      setActivePanel("none");
+      setEditingNodeId(null);
+    } else {
+      setSavedNodes((prev) => [
+        ...prev,
+        {
+          id: uid(),
+          panelType: "segmentacao",
+          data: nodeData,
+          rawData: raw,
+          branches: [
+            { id: uid(), label: "Passou no filtro", color: "#f79f28", percentual: 0, nodes: [] },
+            { id: uid(), label: "Não passou no filtro", color: "#9ca3af", percentual: 0, nodes: [] },
+          ],
+        },
+      ]);
+      setActivePanel("none");
+    }
   };
 
   const autoCollapsed = viewport.zoom <= 0.6;
@@ -657,6 +681,7 @@ export default function Canvas() {
     if (node.data.type === "desisncrever") return DESISNCREVER_WIDTH;
     if (node.data.type === "jornadaOutra") return JORNADA_WIDTH;
     if (node.data.type === "testeAB") return TESTA_B_WIDTH;
+    if (node.data.type === "segmentacao") return 0; // fork renders at junction, card is on Branch 0
     return NODE_WIDTH;
   };
 
@@ -804,6 +829,9 @@ export default function Canvas() {
                     onEdit={() => handleEditNode(node.id)}
                     onRemove={() => handleRemoveNode(node.id)}
                   />
+                ) : node.data.type === "segmentacao" ? (
+                  // Segmentação: width=0, card is rendered inside Branch 0 below
+                  null
                 ) : (
                   <GenericNode
                     data={node.data}
@@ -927,20 +955,27 @@ export default function Canvas() {
                     const yo = (bi - (N - 1) / 2) * BSPC;
                     const branchTransform = `translateY(calc(-50% + ${41 + yo}px))`;
 
+                    // For segmentação, Branch 0 starts AFTER the card; other branches start at branchStartX
+                    const isSegmentacao = node.data.type === "segmentacao";
+                    const isSegBranch0 = isSegmentacao && bi === 0;
+                    const effectiveBranchStart = isSegBranch0
+                      ? branchStartX + SEGMENTACAO_CARD_WIDTH + NODE_GAP
+                      : branchStartX;
+
                     // Branch node positions
                     const branchPositions: number[] = [];
-                    let bx = branchStartX;
+                    let bx = effectiveBranchStart;
                     for (const bn of branch.nodes) {
                       branchPositions.push(bx);
                       bx += nodeWidthOf(bn) + NODE_GAP;
                     }
                     const lastRight = branch.nodes.length > 0
                       ? branchPositions[branch.nodes.length - 1] + nodeWidthOf(branch.nodes[branch.nodes.length - 1])
-                      : branchStartX;
+                      : effectiveBranchStart;
 
                     return (
                       <div key={branch.id}>
-                        {/* Horizontal connector from vertical bar to first node */}
+                        {/* Horizontal connector from vertical bar to first content */}
                         <div style={{
                           position: "absolute",
                           left: `${juncX + 2}px`,
@@ -972,8 +1007,39 @@ export default function Canvas() {
                           userSelect: "none",
                         }}>
                           <div style={{ width: 8, height: 8, borderRadius: "50%", background: branch.color, flexShrink: 0 }} />
-                          {branch.label} · {branch.percentual}%
+                          {isSegmentacao ? branch.label : `${branch.label} · ${branch.percentual}%`}
                         </div>
+
+                        {/* Segmentação Branch 0: render the segmentação card first */}
+                        {isSegBranch0 && (
+                          <>
+                            <SegmentacaoCardNode
+                              initialData={node.rawData as SegmentacaoNoNodeData | undefined}
+                              style={{ left: `${branchStartX}px`, top: "50%", transform: branchTransform }}
+                              forceCollapsed={autoCollapsed}
+                              onEdit={() => handleEditNode(node.id)}
+                              onRemove={() => handleRemoveNode(node.id)}
+                            />
+                            {/* Connector from segmentação card to first branch node (or to add button) */}
+                            {branch.nodes.length > 0 || pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi ? (
+                              <SolidConnector style={{
+                                left: `${branchStartX + SEGMENTACAO_CARD_WIDTH}px`,
+                                top: "50%",
+                                transform: branchTransform,
+                                width: `${NODE_GAP}px`,
+                              }} />
+                            ) : (
+                              <>
+                                <DashedConnector style={{ left: `${branchStartX + SEGMENTACAO_CARD_WIDTH}px`, top: "50%", transform: branchTransform, width: "72px" }} />
+                                <AddNodeButton
+                                  active={true}
+                                  onClick={() => { setBranchContext({ parentNodeId: node.id, branchIdx: bi }); handleOpenAdicionarNo(); }}
+                                  style={{ left: `${branchStartX + SEGMENTACAO_CARD_WIDTH + 72}px`, top: "50%", transform: branchTransform }}
+                                />
+                              </>
+                            )}
+                          </>
+                        )}
 
                         {/* Branch nodes */}
                         {branch.nodes.map((branchNode, bni) => {
@@ -1021,7 +1087,6 @@ export default function Canvas() {
                                   width: `${branchPositions[bni + 1] - branchPositions[bni] - nodeWidthOf(branchNode)}px`,
                                 }} />
                               ) : branchNode.data.type === "desisncrever" ? (
-                                // Desisncrever ends this branch — no add button
                                 null
                               ) : hasPending ? (
                                 <SolidConnector style={{ left: `${lastRight}px`, top: "50%", transform: branchTransform, width: `${NODE_GAP}px` }} />
@@ -1043,7 +1108,7 @@ export default function Canvas() {
                         {(() => {
                           const pbn = pendingBranchNode;
                           if (!pbn || pbn.parentNodeId !== node.id || pbn.branchIdx !== bi) return null;
-                          const pendingLeft = branch.nodes.length > 0 ? lastRight + NODE_GAP : branchStartX;
+                          const pendingLeft = branch.nodes.length > 0 ? lastRight + NODE_GAP : effectiveBranchStart;
                           const pStyle = { left: `${pendingLeft}px`, top: "50%", transform: branchTransform };
                           return pbn.type === "aguardar" ? (
                             <AguardarCardNode
@@ -1064,8 +1129,8 @@ export default function Canvas() {
                           );
                         })()}
 
-                        {/* Empty branch — show add button (unless pending) */}
-                        {branch.nodes.length === 0 && !pendingBranchNode && (
+                        {/* Empty branch — show add button (unless pending or segmentação Branch 0 which has its own) */}
+                        {branch.nodes.length === 0 && !pendingBranchNode && !isSegBranch0 && (
                           <>
                             <DashedConnector style={{ left: `${branchStartX}px`, top: "50%", transform: branchTransform, width: "72px" }} />
                             <AddNodeButton
@@ -1076,7 +1141,7 @@ export default function Canvas() {
                           </>
                         )}
                         {/* Empty branch with pending — solid connector */}
-                        {branch.nodes.length === 0 && pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi && (
+                        {branch.nodes.length === 0 && pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi && !isSegBranch0 && (
                           <SolidConnector style={{ left: `${branchStartX - NODE_GAP}px`, top: "50%", transform: branchTransform, width: `${NODE_GAP}px` }} />
                         )}
                       </div>
