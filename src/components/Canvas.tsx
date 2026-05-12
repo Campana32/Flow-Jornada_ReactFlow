@@ -668,7 +668,7 @@ export default function Canvas() {
   /* ── Node positioning (cumulative, respects per-node widths) ── */
   const NODE_START = 500;
   const NODE_GAP = 64;   // space between nodes (for connector line + add button)
-  const NODE_WIDTH = 260; // default GenericNode width
+  const NODE_WIDTH = 352; // badge(44) - overlap(16) + bar(324) = 352
   const AGUARDAR_WIDTH = 352; // badge(44) - overlap(16) + bar(324) = 352
   const DESISNCREVER_WIDTH = 325; // badge(44) - overlap(16) + bar(297) = 325
   const JORNADA_WIDTH = 352; // badge(44) - overlap(16) + bar(324) = 352
