@@ -41,16 +41,6 @@ const IcArrowRight = () => (
     <path d="M4 10h12M10 4l6 6-6 6" stroke="#12171d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-const IcChevronUp = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path d="M4 10L8 6L12 10" stroke="#12171d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-const IcChevronDown = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path d="M4 6L8 10L12 6" stroke="#6f7680" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 const IcAdd = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#343b44" strokeWidth="1.8" strokeLinecap="round">
     <path d="M12 5v14M5 12h14" />
@@ -126,35 +116,24 @@ function Checkbox({
   );
 }
 
-function AccordionSection({
+function Section({
   title,
   subtitle,
-  open,
-  onToggle,
   children,
-  noToggle,
 }: {
   title: string;
   subtitle?: string;
-  open: boolean;
-  onToggle?: () => void;
   children: React.ReactNode;
-  noToggle?: boolean;
 }) {
   return (
-    <div className="border border-[#e8eaec] rounded-[8px] overflow-hidden">
-      <div
-        className="bg-[#fcfcfc] border-b border-[#e8eaec] flex items-center justify-between px-[12px] py-[12px] h-[44px]"
-        style={{ cursor: noToggle ? "default" : "pointer" }}
-        onClick={noToggle ? undefined : onToggle}
-      >
+    <div className="border border-[#e8eaec] rounded-[8px] overflow-hidden shrink-0">
+      <div className="bg-[#fcfcfc] border-b border-[#e8eaec] flex items-center px-[12px] h-[44px]">
         <span className="text-sm font-medium text-[#12171d]">
           {title}
           {subtitle && <span className="font-normal text-[#4c535c] text-xs ml-1">{subtitle}</span>}
         </span>
-        {!noToggle && (open ? <IcChevronUp /> : <IcChevronDown />)}
       </div>
-      {open && <div className="p-[16px] flex flex-col gap-[16px] bg-white">{children}</div>}
+      <div className="p-[16px] flex flex-col gap-[16px] bg-white">{children}</div>
     </div>
   );
 }
@@ -162,10 +141,6 @@ function AccordionSection({
 /* ── Main component ── */
 export default function WebhooksPanel({ onClose, onAdd, onRemove, initialData }: WebhooksPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
-
-  /* accordion open state */
-  const [secIdent, setSecIdent] = useState(true);
-  const [secPayload, setSecPayload] = useState(true);
 
   /* Identificação */
   const [nome, setNome] = useState(initialData?.nome ?? "");
@@ -242,10 +217,10 @@ export default function WebhooksPanel({ onClose, onAdd, onRemove, initialData }:
       </div>
 
       {/* Content */}
-      <div className="p-[20px] flex flex-col gap-[12px]" style={{ overflowY: 'auto', flex: '1 1 0px' }}>
+      <div className="flex-1 min-h-0 overflow-y-auto p-[20px] flex flex-col gap-[12px]">
 
         {/* ── Identificação ── */}
-        <AccordionSection title="Identificação" open={secIdent} onToggle={() => setSecIdent((v) => !v)}>
+        <Section title="Identificação">
           {/* Nome */}
           <div className="flex flex-col gap-[6px]" style={{ maxWidth: 320 }}>
             <Label required>Nome</Label>
@@ -271,7 +246,7 @@ export default function WebhooksPanel({ onClose, onAdd, onRemove, initialData }:
                   {METODOS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
                 <span className="absolute right-[8px] top-1/2 -translate-y-1/2 pointer-events-none">
-                  <IcChevronDown />
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6L8 10L12 6" stroke="#6f7680" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </span>
               </div>
               {/* URL input */}
@@ -291,10 +266,10 @@ export default function WebhooksPanel({ onClose, onAdd, onRemove, initialData }:
               </button>
             </div>
           </div>
-        </AccordionSection>
+        </Section>
 
         {/* ── Payload ── */}
-        <AccordionSection title="Payload" subtitle="(Body da requisição)" open={secPayload} onToggle={() => setSecPayload((v) => !v)}>
+        <Section title="Payload" subtitle="(Body da requisição)">
           {/* Tabs Simplificado / Avançado */}
           <div className="flex gap-[8px]">
             {(["simplificado", "avancado"] as const).map((mode) => (
@@ -424,10 +399,10 @@ export default function WebhooksPanel({ onClose, onAdd, onRemove, initialData }:
               </div>
             </>
           )}
-        </AccordionSection>
+        </Section>
 
         {/* ── Comportamento em erro ── */}
-        <div className="border border-[#e8eaec] rounded-[8px] overflow-hidden">
+        <div className="border border-[#e8eaec] rounded-[8px] overflow-hidden shrink-0">
           <div className="bg-[#fcfcfc] border-b border-[#e8eaec] flex items-center px-[12px] h-[44px]">
             <span className="text-sm font-medium text-[#12171d]">Comportamento em erro</span>
           </div>

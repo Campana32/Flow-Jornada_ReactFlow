@@ -167,7 +167,7 @@ function AccordionToggle({ title, enabled, onToggle, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="border border-[#e8eaec] rounded-[8px] overflow-hidden bg-[#fcfcfc]">
+    <div className="border border-[#e8eaec] rounded-[8px] overflow-hidden bg-[#fcfcfc] shrink-0">
       <div className="flex items-center justify-between px-[12px] h-[54px]">
         <span className="text-sm font-medium text-[#12171d]">{title}</span>
         <Toggle checked={enabled} onChange={onToggle} />
@@ -311,7 +311,7 @@ export default function WebPushPanel({ onClose, onAdd, onRemove, initialData }: 
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-[20px] flex flex-col gap-[16px]">
+      <div className="flex-1 min-h-0 overflow-y-auto p-[20px] flex flex-col gap-[16px]">
 
         {/* Nome + Provedor */}
         <div className="flex gap-[8px]">
@@ -334,7 +334,7 @@ export default function WebPushPanel({ onClose, onAdd, onRemove, initialData }: 
         <div className="h-px bg-[#e8eaec]" />
 
         {/* Toggle Não perturbe */}
-        <div className="border border-[#e8eaec] rounded-[8px] bg-[#fcfcfc] flex items-center justify-between px-[12px] py-[16px]">
+        <div className="border border-[#e8eaec] rounded-[8px] bg-[#fcfcfc] flex items-center justify-between px-[12px] py-[16px] shrink-0">
           <span className="text-sm font-medium text-[#12171d]">Respeitar as restrições de entrega (Não perturbe)</span>
           <Toggle checked={naoPerturbe} onChange={() => setNaoPerturbe((v) => !v)} />
         </div>
@@ -342,7 +342,7 @@ export default function WebPushPanel({ onClose, onAdd, onRemove, initialData }: 
         <div className="h-px bg-[#e8eaec]" />
 
         {/* Tipo de Mensagem */}
-        <div className="bg-[#f1f2f3] border border-[#e8eaec] rounded-[16px] overflow-hidden">
+        <div className="bg-[#f1f2f3] border border-[#e8eaec] rounded-[16px] overflow-hidden shrink-0">
           <div className="px-[20px] py-[16px]">
             <p className="text-base font-medium text-[#12171d]">Selecione o tipo de Mensagem</p>
           </div>

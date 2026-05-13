@@ -248,7 +248,7 @@ export default function MobilePushPanel({ onClose, onAdd, onRemove, initialData 
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', minHeight: 0 }}>
+      <div className="flex-1 min-h-0 overflow-y-auto p-[20px] flex flex-col gap-[16px]">
 
         {/* Nome + ID de notificação */}
         <div className="flex gap-[8px]">
@@ -282,7 +282,7 @@ export default function MobilePushPanel({ onClose, onAdd, onRemove, initialData 
         <div className="h-px bg-[#e8eaec]" />
 
         {/* Toggle Não perturbe */}
-        <div className="border border-[#e8eaec] rounded-[8px] bg-[#fcfcfc] flex items-center justify-between px-[12px] py-[16px]">
+        <div className="border border-[#e8eaec] rounded-[8px] bg-[#fcfcfc] flex items-center justify-between px-[12px] py-[16px] shrink-0">
           <span className="text-sm font-medium text-[#12171d]">
             Respeitar as restrições de entrega (Não perturbe)
           </span>
@@ -300,7 +300,7 @@ export default function MobilePushPanel({ onClose, onAdd, onRemove, initialData 
         <div className="h-px bg-[#e8eaec]" />
 
         {/* Tipo de Mensagem */}
-        <div className="bg-[#f1f2f3] border border-[#e8eaec] rounded-[16px] overflow-hidden">
+        <div className="bg-[#f1f2f3] border border-[#e8eaec] rounded-[16px] overflow-hidden shrink-0">
           <div className="px-[20px] py-[16px]">
             <p className="text-base font-medium text-[#12171d]">Selecione o tipo de Mensagem</p>
           </div>

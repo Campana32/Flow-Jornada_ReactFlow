@@ -1,7 +1,8 @@
 /**
  * Central source of truth for journey node colours, labels and icon assets.
- * Icon URLs come from the Figma MCP server (node 1504-2682, file OImjZOw5sjd4DStdtSc3vQ).
- * They are served for 7 days; re-fetch from Figma if they expire.
+ * Icons are stored locally in /public/icons/{type}.png — no expiry.
+ * To refresh: use Figma MCP on node 1504:2682, file OImjZOw5sjd4DStdtSc3vQ,
+ * download the assets and replace the files in public/icons/.
  */
 
 export const NODE_COLORS: Record<string, string> = {
@@ -34,20 +35,19 @@ export const NODE_LABELS: Record<string, string> = {
   testeAB:      "Teste A/B",
 };
 
-/** Figma MCP asset URLs (expire ~7 days after fetch). */
 const ICON_URLS: Record<string, string> = {
-  email:        "https://www.figma.com/api/mcp/asset/116e8997-43d7-4033-8a61-4a168c042efe",
-  segmentacao:  "https://www.figma.com/api/mcp/asset/c8e435ad-c352-4ced-9feb-ed2dc62e0a3f",
-  edicaoProp:   "https://www.figma.com/api/mcp/asset/b3688361-abf9-4370-9480-430f27d03d40",
-  webhooks:     "https://www.figma.com/api/mcp/asset/5d64a00e-e600-42c7-938d-2886c52303be",
-  desisncrever: "https://www.figma.com/api/mcp/asset/a517d0df-c13f-4e6e-a038-674a6ae9a35f",
-  aguardar:     "https://www.figma.com/api/mcp/asset/b50a6e25-5474-4fac-830e-51791babf5d1",
-  jornadaOutra: "https://www.figma.com/api/mcp/asset/edd01b17-a50b-4862-af2d-5a1491d20294",
-  testeAB:      "https://www.figma.com/api/mcp/asset/44454f3b-c5cb-4677-b62c-86e6be0df0a1",
-  sms:          "https://www.figma.com/api/mcp/asset/997f3290-0a18-4fde-8c34-28a289dabbfe",
-  whatsapp:     "https://www.figma.com/api/mcp/asset/48df54e3-e837-4db1-95c2-3330a43f66b3",
-  mobilePush:   "https://www.figma.com/api/mcp/asset/0cc99c36-2548-40b2-90e0-d43b248e6961",
-  webPush:      "https://www.figma.com/api/mcp/asset/057554b7-32d7-48d0-8327-40aee4c4ca97",
+  email:        "/icons/email.svg",
+  segmentacao:  "/icons/segmentacao.svg",
+  edicaoProp:   "/icons/edicaoProp.svg",
+  webhooks:     "/icons/webhooks.svg",
+  desisncrever: "/icons/desisncrever.svg",
+  aguardar:     "/icons/aguardar.svg",
+  jornadaOutra: "/icons/jornadaOutra.svg",
+  testeAB:      "/icons/testeAB.svg",
+  sms:          "/icons/sms.svg",
+  whatsapp:     "/icons/whatsapp.svg",
+  mobilePush:   "/icons/mobilePush.svg",
+  webPush:      "/icons/webPush.svg",
 };
 
 /**

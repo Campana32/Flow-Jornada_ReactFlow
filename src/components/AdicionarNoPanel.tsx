@@ -19,7 +19,7 @@ const closeIcon = (
   </svg>
 );
 
-/* â”€â”€ Node Card â”€â”€ */
+/* -- Node Card -- */
 function NodeCard({
   type,
   label,
@@ -45,7 +45,7 @@ function NodeCard({
   );
 }
 
-/* â”€â”€ Section â”€â”€ */
+/* -- Section -- */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-[16px]">
@@ -55,7 +55,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-/* â”€â”€ Main â”€â”€ */
+/* -- Main -- */
 export default function AdicionarNoPanel({ onClose, onNodeSelect }: AdicionarNoPanelProps) {
   return (
     <div
@@ -75,7 +75,7 @@ export default function AdicionarNoPanel({ onClose, onNodeSelect }: AdicionarNoP
 
       {/* Content */}
       <div className="bg-white p-[16px] flex flex-col gap-[24px] overflow-y-auto flex-1 min-h-0">
-        <Section title="AÃ‡Ã•ES">
+        <Section title="AÇÕES">
           <NodeCard type="edicaoProp"   label="Edição de prop."       hasExpand onClick={() => onNodeSelect?.("edicaoProp")} />
           <NodeCard type="webhooks"     label="Webhooks"               hasExpand onClick={() => onNodeSelect?.("webhooks")} />
           <NodeCard type="desisncrever" label="Desisncrever"                     onClick={() => onNodeSelect?.("desisncrever")} />
@@ -83,7 +83,7 @@ export default function AdicionarNoPanel({ onClose, onNodeSelect }: AdicionarNoP
           <NodeCard type="jornadaOutra" label="Adic. a outra jornada"             onClick={() => onNodeSelect?.("jornadaOutra")} />
         </Section>
 
-        <Section title="CONEXÃ•ES">
+        <Section title="CONEXÕES">
           <NodeCard type="segmentacao" label="Segmentação" onClick={() => onNodeSelect?.("segmentacao")} />
           <NodeCard type="testeAB"     label="Teste A/B"   onClick={() => onNodeSelect?.("testeAB")} />
         </Section>
