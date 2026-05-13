@@ -85,8 +85,8 @@ function IconChevronDown() {
 }
 function IconCalc() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M15.833 4.167A8.333 8.333 0 1 1 4.167 15.833M15.833 4.167V8.333M15.833 4.167H11.667" stroke="#343B44" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9.99998 3.33337V0.833374L6.66665 4.16671L9.99998 7.50004V5.00004C12.7583 5.00004 15 7.24171 15 10C15 10.8417 14.7916 11.6417 14.4166 12.3334L15.6333 13.55C16.2833 12.525 16.6666 11.3084 16.6666 10C16.6666 6.31671 13.6833 3.33337 9.99998 3.33337ZM9.99998 15C7.24165 15 4.99998 12.7584 4.99998 10C4.99998 9.15837 5.20831 8.35837 5.58331 7.66671L4.36665 6.45004C3.71665 7.47504 3.33331 8.69171 3.33331 10C3.33331 13.6834 6.31665 16.6667 9.99998 16.6667V19.1667L13.3333 15.8334L9.99998 12.5V15Z" fill="#343B44"/>
     </svg>
   );
 }
@@ -174,7 +174,7 @@ function VennDiagramContent() {
 
 /* ── Left floating cards (Venn + Alcance) ── */
 function LeftCards() {
-  const [vennOpen, setVennOpen] = useState(false);
+  const [vennOpen, setVennOpen] = useState(true);
 
   return (
     <div className="flex flex-col gap-[8px] w-[277px] shrink-0">
@@ -345,20 +345,6 @@ export default function ConfigurarEntradaPanel({
           <div className="flex flex-1 items-center justify-between pl-[16px] pr-[16px] py-[12px]">
             <span className="text-lg font-semibold text-text-primary whitespace-nowrap">Configurar entrada</span>
             <div className="flex items-center gap-[8px]">
-              {segmentacao && (
-                <button
-                  onClick={handleUndo}
-                  disabled={!isDirty}
-                  title={isDirty ? "Desfazer alterações" : "Sem alterações"}
-                  className={`flex items-center justify-center border rounded-[8px] p-[8px] transition-colors ${
-                    isDirty
-                      ? "bg-white border-border-primary text-text-secondary hover:bg-gray-50"
-                      : "bg-surface-disabled border-border-disabled text-text-disabled cursor-not-allowed"
-                  }`}
-                >
-                  <IconSync />
-                </button>
-              )}
               <button onClick={() => setCollapsed(true)} className="flex items-center justify-center p-[8px] rounded-[8px] hover:bg-gray-100 transition-colors">
                 <IconArrowForward />
               </button>
@@ -376,29 +362,11 @@ export default function ConfigurarEntradaPanel({
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-[20px] flex flex-col gap-[20px] min-h-0">
           {/* Segmentação */}
-          <div className="flex items-start gap-[8px]">
-            <div className="flex-1">
-              <SegmentacaoSelect
-                value={segmentacao}
-                onChange={handleSegmentacaoChange}
-                error={showError}
-              />
-            </div>
-            {segmentacao && (
-              <button
-                onClick={handleUndo}
-                disabled={!isDirty}
-                title="Desfazer alterações desta segmentação"
-                className={`mt-[26px] flex items-center justify-center border rounded-[8px] p-[9px] transition-colors shrink-0 ${
-                  isDirty
-                    ? "bg-white border-border-secondary text-text-secondary hover:bg-gray-50"
-                    : "bg-surface-disabled border-border-disabled text-text-disabled cursor-not-allowed"
-                }`}
-              >
-                <IconSync />
-              </button>
-            )}
-          </div>
+          <SegmentacaoSelect
+            value={segmentacao}
+            onChange={handleSegmentacaoChange}
+            error={showError}
+          />
 
           {/* Filter sections — sempre visíveis; pré-preenchidas ao selecionar segmentação */}
           {(() => {
