@@ -181,7 +181,7 @@ export default function TesteABPanel({ onClose, onAdd, onRemove, initialData }: 
                     max={100}
                     value={v.percentual}
                     onChange={(e) => handlePercent(v.id, e.target.value)}
-                    className="w-[28px] bg-transparent text-sm text-[#12171d] outline-none text-center"
+                    className="w-[40px] bg-transparent text-sm text-[#12171d] outline-none text-center"
                   />
                   <IcPercent />
                 </div>
