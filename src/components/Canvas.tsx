@@ -157,6 +157,8 @@ export default function Canvas() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const activePanelRef = useRef(activePanel);
+  useEffect(() => { activePanelRef.current = activePanel; }, [activePanel]);
 
   /* ── Non-passive wheel listener (zoom + pan) ── */
   useEffect(() => {
@@ -164,6 +166,7 @@ export default function Canvas() {
     if (!el) return;
 
     const handler = (e: WheelEvent) => {
+      if (activePanelRef.current !== "none") return;
       e.preventDefault();
       if (e.ctrlKey || e.metaKey) {
         setViewport((vp) => {

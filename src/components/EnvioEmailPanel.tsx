@@ -194,7 +194,7 @@ export default function EnvioEmailPanel({ onClose, onAdd, onRemove, initialData 
     <div
       className="fixed z-50 flex flex-col rounded-[12px] overflow-hidden border border-[#e8eaec] bg-white shadow-[0px_20px_24px_-4px_rgba(16,24,40,0.08),0px_8px_8px_-4px_rgba(39,44,55,0.08)]"
       style={{ bottom: "24px", right: "24px", width: 660, height: "79vh" }}
-      onWheel={(e) => e.stopPropagation()}
+      onWheel={(e) => e.nativeEvent.stopImmediatePropagation()}
     >
       {/* â”€â”€ Header â”€â”€ */}
       <div className="flex items-center gap-[12px] px-[16px] py-[14px] border-b border-[#e8eaec] shrink-0">

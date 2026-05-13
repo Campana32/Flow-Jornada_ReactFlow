@@ -319,7 +319,7 @@ export default function ConfigurarEntradaPanel({
     <div
       className="fixed z-50 flex items-start gap-[8px]"
       style={{ bottom: '24px', right: '24px' }}
-      onWheel={(e) => e.stopPropagation()}
+      onWheel={(e) => e.nativeEvent.stopImmediatePropagation()}
     >
       {/* Cards flutuantes: marginTop = altura do header do painel para alinhar com o conteúdo */}
       <div style={{ marginTop: '60px' }}>

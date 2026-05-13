@@ -61,7 +61,7 @@ export default function AdicionarNoPanel({ onClose, onNodeSelect }: AdicionarNoP
     <div
       className="fixed z-50 flex flex-col rounded-[12px] overflow-hidden border border-border-secondary bg-white shadow-[0px_20px_24px_-4px_rgba(16,24,40,0.08),0px_8px_8px_-4px_rgba(39,44,55,0.08)]"
       style={{ bottom: "24px", right: "24px", width: 640, maxHeight: "calc(100vh - 72px - 48px)" }}
-      onWheel={(e) => e.stopPropagation()}
+      onWheel={(e) => e.nativeEvent.stopImmediatePropagation()}
     >
       {/* Header */}
       <div className="flex items-center justify-between bg-[#f8f8f9] border-b border-border-secondary px-[16px] py-[12px] shrink-0">
