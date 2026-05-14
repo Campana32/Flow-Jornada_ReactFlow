@@ -144,9 +144,6 @@ export default function AguardarCardNode({
                 {quantidade} {pluralize(quantidade, unidade)}
               </span>
             </p>
-            <button className="flex items-center justify-center p-[8px] rounded-[8px] hover:bg-white/10 transition-colors">
-              <IcEdit />
-            </button>
           </div>
         </div>
 

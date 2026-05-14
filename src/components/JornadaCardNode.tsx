@@ -176,9 +176,6 @@ export default function JornadaCardNode({
             <span className="text-base font-semibold text-white pl-[4px]">
               Adicionar a outra jornada
             </span>
-            <button className="flex items-center justify-center p-[8px] rounded-[8px] hover:bg-white/10 transition-colors">
-              <IcEdit />
-            </button>
           </div>
         </div>
 

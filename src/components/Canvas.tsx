@@ -37,6 +37,9 @@ import TesteABPanel from "./TesteABPanel";
 import TesteABCardNode from "./TesteABCardNode";
 import type { TesteABCardNodeData } from "./TesteABCardNode";
 
+import MiniMap from "./MiniMap";
+import type { MiniMapNode } from "./MiniMap";
+
 // Canvas nodes
 import GenericNode from "./GenericNode";
 import type { GenericNodeData } from "./GenericNode";
@@ -232,6 +235,10 @@ export default function Canvas() {
 
   const handleZoomOut = useCallback(() => {
     setViewport((vp) => ({ ...vp, zoom: Math.max(MIN_ZOOM, Math.round((vp.zoom - ZOOM_STEP) * 10) / 10) }));
+  }, []);
+
+  const handlePanTo = useCallback((pan: { x: number; y: number }) => {
+    setViewport((vp) => ({ ...vp, pan }));
   }, []);
 
   /* ── Panel handlers ── */
@@ -668,6 +675,9 @@ export default function Canvas() {
 
   const autoCollapsed = viewport.zoom <= 0.6;
 
+  const canvasW = canvasRef.current?.clientWidth ?? 1200;
+  const canvasH = canvasRef.current?.clientHeight ?? 700;
+
   /* ── Node positioning (cumulative, respects per-node widths) ── */
   const NODE_START = 500;
   const NODE_GAP = 64;   // space between nodes (for connector line + add button)
@@ -699,6 +709,24 @@ export default function Canvas() {
   }
 
   const getNodeLeft = (idx: number) => nodePositions[idx] ?? NODE_START;
+
+  /* ── MiniMap data ── */
+  const ENTRADA_X = 24;
+  const ENTRADA_W = 352;
+  // Nodes sit at top:50% + translateY(-50%) + translateY(41px) → center = canvasH/2 + 41
+  const NODE_CY = canvasH / 2 + 41;
+  const NODE_MINI_H = 44;
+  const minimapNodes: MiniMapNode[] = [
+    { id: "entrada", x: ENTRADA_X, y: NODE_CY, width: ENTRADA_W, height: NODE_MINI_H, color: "#10b681" },
+    ...savedNodes.map((n, i) => ({
+      id: n.id,
+      x: nodePositions[i] ?? NODE_START,
+      y: NODE_CY,
+      width: nodeWidthOf(n),
+      height: NODE_MINI_H,
+      color: n.data.color ?? "#6b7280",
+    })),
+  ];
 
   // Left edge of connector after node idx
   const getConnectorLeft = (idx: number) =>
@@ -1221,6 +1249,15 @@ export default function Canvas() {
         zoom={Math.round(viewport.zoom * 100)}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
+      />
+
+      {/* ── MiniMap ── */}
+      <MiniMap
+        nodes={minimapNodes}
+        viewport={viewport}
+        canvasWidth={canvasW}
+        canvasHeight={canvasH}
+        onPanTo={handlePanTo}
       />
     </div>
   );

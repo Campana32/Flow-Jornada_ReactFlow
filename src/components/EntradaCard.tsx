@@ -6,6 +6,20 @@ interface EntradaCardProps {
   forceCollapsed?: boolean;
 }
 
+function IcEdit() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+      <path
+        d="M14.7 2.3a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4l-10 10L4 16l.7-3.7 10-10z"
+        stroke="white"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function IconEntrada() {
   return (
     <svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -65,6 +79,14 @@ export default function EntradaCard({ onConfigure, savedSegmentacao, forceCollap
             className={`flex items-center pl-[26px] pr-[12px] py-[10px] w-[324px] z-[1] bg-entrada-bg ${bodyVisible ? "rounded-tl-[8px] rounded-tr-[8px]" : "rounded-[8px]"}`}
           >
             <span className="flex-1 text-base font-semibold text-white whitespace-nowrap">Entrada</span>
+            {isSaved && (
+              <button
+                onClick={onConfigure}
+                className="flex items-center justify-center p-[8px] rounded-[8px] hover:bg-white/10 transition-colors"
+              >
+                <IcEdit />
+              </button>
+            )}
           </div>
         </div>
 
