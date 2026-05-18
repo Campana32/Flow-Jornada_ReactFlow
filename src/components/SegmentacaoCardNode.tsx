@@ -9,6 +9,7 @@ interface Props {
   forceCollapsed?: boolean;
   onEdit?: () => void;
   onRemove?: () => void;
+  priority?: number;
 }
 
 const COLOR = "#f79f28";
@@ -86,7 +87,7 @@ function Badge({ z2 }: { z2?: boolean }) {
   );
 }
 
-export default function SegmentacaoCardNode({ initialData, style, forceCollapsed, onEdit, onRemove }: Props) {
+export default function SegmentacaoCardNode({ initialData, style, forceCollapsed, onEdit, onRemove, priority }: Props) {
   const [isOpen, setIsOpen] = useState(true);
 
   const showCollapsed = forceCollapsed || !isOpen;
@@ -108,7 +109,17 @@ export default function SegmentacaoCardNode({ initialData, style, forceCollapsed
             className="flex items-center justify-between rounded-[8px] z-0 shrink-0 px-[16px] py-[10px]"
             style={{ width: BAR_W, background: COLOR, paddingLeft: 26 }}
           >
-            <span className="text-[16px] font-semibold text-white whitespace-nowrap">Segmentação</span>
+            <div className="flex items-center gap-[8px]">
+              <span className="text-[16px] font-semibold text-white whitespace-nowrap">Segmentação</span>
+              {priority !== undefined && (
+                <span
+                  className="flex items-center justify-center rounded-[999px] text-[12px] font-medium leading-[18px] whitespace-nowrap px-[6px] py-[2px]"
+                  style={{ background: "#fff8e6", border: "1px solid #fff1c7", color: "#343b44" }}
+                >
+                  {priority}
+                </span>
+              )}
+            </div>
             <button
               onClick={() => !forceCollapsed && setIsOpen(true)}
               className="flex items-center justify-center size-[36px] rounded-[8px] hover:bg-white/20 transition-colors shrink-0"
@@ -137,7 +148,17 @@ export default function SegmentacaoCardNode({ initialData, style, forceCollapsed
             className="flex items-center justify-between rounded-tl-[8px] rounded-tr-[8px] z-[1] shrink-0"
             style={{ width: BAR_W, background: COLOR, paddingLeft: 26, paddingRight: 8, paddingTop: 10, paddingBottom: 10 }}
           >
-            <span className="text-[16px] font-semibold text-white whitespace-nowrap">Segmentação</span>
+            <div className="flex items-center gap-[8px]">
+              <span className="text-[16px] font-semibold text-white whitespace-nowrap">Segmentação</span>
+              {priority !== undefined && (
+                <span
+                  className="flex items-center justify-center rounded-[999px] text-[12px] font-medium leading-[18px] whitespace-nowrap px-[6px] py-[2px]"
+                  style={{ background: "#fff8e6", border: "1px solid #fff1c7", color: "#343b44" }}
+                >
+                  {priority}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-[8px]">
               {onEdit && (
                 <button

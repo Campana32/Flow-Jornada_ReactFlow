@@ -151,19 +151,25 @@ function FilterSection({
 }) {
   return (
     <div className="border border-[#e8eaec] rounded-[8px] overflow-hidden bg-[#f8f8f9] shrink-0">
-      <button
-        type="button"
-        className="w-full flex items-center justify-between px-[12px] py-[8px] text-left"
+      <div
+        role="button"
+        tabIndex={0}
+        className="w-full flex items-center justify-between px-[12px] py-[8px] text-left cursor-pointer"
         onClick={onToggle}
+        onKeyDown={(e) => e.key === "Enter" && onToggle()}
       >
         <div className="flex items-center gap-[12px] flex-wrap">
           {showE && <EBadge />}
           <span className="text-[14px] font-medium text-[#12171d]">{label}</span>
-          {showMode && mode && onModeChange && <SegmentedMode value={mode} onChange={onModeChange} />}
+          {showMode && mode && onModeChange && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <SegmentedMode value={mode} onChange={onModeChange} />
+            </div>
+          )}
           <span className="text-[14px] font-medium text-[#12171d]">{suffix}</span>
         </div>
         <span className="ml-[8px] shrink-0">{open ? icons.chevronUp : icons.chevronDown}</span>
-      </button>
+      </div>
       {open && (
         <>
           <div className="h-px bg-[#e8eaec]" />

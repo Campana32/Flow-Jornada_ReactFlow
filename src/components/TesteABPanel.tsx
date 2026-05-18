@@ -208,7 +208,10 @@ export default function TesteABPanel({ onClose, onAdd, onRemove, initialData }: 
           </button>
 
           {total !== 100 && (
-            <p className="text-xs text-[#d92d20]">A soma das variantes deve ser 100% (atual: {total}%)</p>
+            <div className="flex items-center rounded-[8px] bg-[#FEF7F6] overflow-hidden" style={{ minHeight: 36 }}>
+              <div className="w-[3px] self-stretch rounded-l-[8px] bg-[#F97066] shrink-0" />
+              <p className="px-[12px] py-[8px] text-sm text-[#4C535C]">A soma das variantes deve ser 100% (atual: {total}%)</p>
+            </div>
           )}
         </div>
       </div>

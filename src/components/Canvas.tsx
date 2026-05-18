@@ -66,6 +66,8 @@ interface BranchChain {
   color: string;
   percentual: number;
   nodes: SavedNode[];
+  rawData?: SegmentacaoNoNodeData;
+  isNegativa?: boolean;
 }
 
 interface SavedNode {
@@ -95,7 +97,7 @@ const nodeLabels = NODE_LABELS;
 const nodeIcon = (type: string): React.ReactNode => <NodeIconImg type={type} />;
 
 /* ── Canvas Utility Components ── */
-function AddNodeButton({ active, onClick, style }: { active: boolean; onClick?: () => void; style?: React.CSSProperties }) {
+function AddNodeButton({ active, onClick, style, label = "Adicionar nó" }: { active: boolean; onClick?: () => void; style?: React.CSSProperties; label?: string }) {
   return (
     <button
       onClick={active ? onClick : undefined}
@@ -107,7 +109,7 @@ function AddNodeButton({ active, onClick, style }: { active: boolean; onClick?: 
       }`}
       style={style}
     >
-      <span className="text-sm font-semibold whitespace-nowrap">Adicionar nó</span>
+      <span className="text-sm font-semibold whitespace-nowrap">{label}</span>
     </button>
   );
 }
@@ -124,6 +126,65 @@ function SolidConnector({ style }: { style?: React.CSSProperties }) {
   return (
     <div className="absolute flex items-center" style={style}>
       <div className="w-full border-t-2 border-gray-400" />
+    </div>
+  );
+}
+
+function BranchDropdown({
+  style,
+  onSelect,
+  onClose,
+}: {
+  style?: React.CSSProperties;
+  onSelect: (type: "segmentar" | "nao-atende") => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const timeout = setTimeout(() => {
+      if (!mounted) return;
+      const handler = (e: MouseEvent) => {
+        if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      };
+      document.addEventListener("mousedown", handler);
+      (ref as React.MutableRefObject<{ _cleanup?: () => void }>).current!._cleanup = () =>
+        document.removeEventListener("mousedown", handler);
+    }, 0);
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      (ref as React.MutableRefObject<{ _cleanup?: () => void }>).current?._cleanup?.();
+    };
+  }, [onClose]);
+
+  return (
+    <div ref={ref} className="absolute" style={{ ...style, zIndex: 50 }}>
+      <div
+        className="rounded-[8px] border border-[#E8EAEC] bg-[#FCFCFC] overflow-hidden"
+        style={{ width: 224, boxShadow: "0 4px 6px -2px rgba(16,24,40,0.03), 0 12px 16px -4px rgba(16,24,40,0.08)" }}
+      >
+        <button
+          className="w-full flex items-center gap-3 px-3 py-[11px] hover:bg-[#F5F6F7] transition-colors text-left"
+          onClick={() => onSelect("segmentar")}
+        >
+          <svg width="14" height="12" viewBox="28 17 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M35.3327 17.6665L36.8593 19.1932L34.9393 21.1132L35.886 22.0598L37.806 20.1398L39.3327 21.6665V17.6665H35.3327ZM32.666 17.6665H28.666V21.6665L30.1927 20.1398L33.3327 23.2732V28.3332H34.666V22.7265L31.1393 19.1932L32.666 17.6665Z" fill="#6F7680"/>
+          </svg>
+          <span className="text-sm text-[#343B44]">Segmentação</span>
+        </button>
+        <div className="h-px bg-[#E8EAEC]" />
+        <button
+          className="w-full flex items-center gap-3 px-3 py-[11px] hover:bg-[#F5F6F7] transition-colors text-left"
+          onClick={() => onSelect("nao-atende")}
+        >
+          <svg width="14" height="14" viewBox="27 54 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M34.0007 54.3335C30.3207 54.3335 27.334 57.3202 27.334 61.0002C27.334 64.6802 30.3207 67.6668 34.0007 67.6668C37.6807 67.6668 40.6673 64.6802 40.6673 61.0002C40.6673 57.3202 37.6807 54.3335 34.0007 54.3335ZM34.0007 66.3335C31.0607 66.3335 28.6673 63.9402 28.6673 61.0002C28.6673 58.0602 31.0607 55.6668 34.0007 55.6668C36.9407 55.6668 39.334 58.0602 39.334 61.0002C39.334 63.9402 36.9407 66.3335 34.0007 66.3335ZM30.6673 60.3335H37.334V61.6668H30.6673V60.3335Z" fill="#6F7680"/>
+          </svg>
+          <span className="text-sm text-[#343B44]">Não atende</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -151,8 +212,15 @@ export default function Canvas() {
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [pendingAguardar, setPendingAguardar] = useState(false);
   const [pendingJornada, setPendingJornada] = useState(false);
-  const [branchContext, setBranchContext] = useState<{ parentNodeId: string; branchIdx: number } | null>(null);
-  const [pendingBranchNode, setPendingBranchNode] = useState<{ type: "aguardar" | "jornada"; parentNodeId: string; branchIdx: number } | null>(null);
+  const [branchContext, setBranchContext] = useState<{
+    parentNodeId: string;
+    branchIdx: number;
+    nestedNodeId?: string;
+    subBranchIdx?: number;
+  } | null>(null);
+  const [pendingBranchNode, setPendingBranchNode] = useState<{ type: "aguardar" | "jornada"; parentNodeId: string; branchIdx: number; nestedNodeId?: string; subBranchIdx?: number } | null>(null);
+  const [openBranchDropdownKey, setOpenBranchDropdownKey] = useState<string | null>(null);
+  const [editingSegBranch, setEditingSegBranch] = useState<{ parentNodeId: string; branchIdx: number } | null>(null);
 
   /* ── Viewport state ── */
   const [viewport, setViewport] = useState({ zoom: 1, pan: { x: 0, y: 0 } });
@@ -253,6 +321,7 @@ export default function Canvas() {
     setActivePanel("none");
     setEditingNodeId(null);
     setBranchContext(null);
+    setEditingSegBranch(null);
   };
 
   const removeHandler = editingNodeId
@@ -275,7 +344,8 @@ export default function Canvas() {
   const handleNodeSelect = (type: string) => {
     if (type === "aguardar") {
       if (branchContext) {
-        setPendingBranchNode({ type: "aguardar", ...branchContext });
+        const { parentNodeId, branchIdx, nestedNodeId, subBranchIdx } = branchContext;
+        setPendingBranchNode({ type: "aguardar", parentNodeId, branchIdx, nestedNodeId, subBranchIdx });
         setBranchContext(null);
       } else {
         setPendingAguardar(true);
@@ -285,7 +355,8 @@ export default function Canvas() {
     }
     if (type === "jornadaOutra") {
       if (branchContext) {
-        setPendingBranchNode({ type: "jornada", ...branchContext });
+        const { parentNodeId, branchIdx, nestedNodeId, subBranchIdx } = branchContext;
+        setPendingBranchNode({ type: "jornada", parentNodeId, branchIdx, nestedNodeId, subBranchIdx });
         setBranchContext(null);
       } else {
         setPendingJornada(true);
@@ -306,10 +377,23 @@ export default function Canvas() {
         },
       };
       if (branchContext) {
-        const { parentNodeId, branchIdx } = branchContext;
+        const { parentNodeId, branchIdx, nestedNodeId, subBranchIdx } = branchContext;
         setSavedNodes((prev) => prev.map((n) => {
           if (n.id !== parentNodeId || !n.branches) return n;
-          return { ...n, branches: n.branches.map((b, bi) => bi === branchIdx ? { ...b, nodes: [...b.nodes, newNode] } : b) };
+          return {
+            ...n, branches: n.branches.map((b, bi) => {
+              if (bi !== branchIdx) return b;
+              if (nestedNodeId !== undefined && subBranchIdx !== undefined) {
+                return {
+                  ...b, nodes: b.nodes.map((bn) => {
+                    if (bn.id !== nestedNodeId || !bn.branches) return bn;
+                    return { ...bn, branches: bn.branches.map((sb, sbi) => sbi === subBranchIdx ? { ...sb, nodes: [...sb.nodes, newNode] } : sb) };
+                  }),
+                };
+              }
+              return { ...b, nodes: [...b.nodes, newNode] };
+            }),
+          };
         }));
         setBranchContext(null);
       } else {
@@ -345,12 +429,26 @@ export default function Canvas() {
 
   function pushOrUpdateNode(data: GenericNodeData, panelType: string, rawData?: unknown) {
     if (branchContext) {
-      const { parentNodeId, branchIdx } = branchContext;
+      const { parentNodeId, branchIdx, nestedNodeId, subBranchIdx } = branchContext;
       setSavedNodes((prev) =>
         prev.map((n) => {
           if (n.id !== parentNodeId || !n.branches) return n;
           const branches = n.branches.map((b, bi) => {
             if (bi !== branchIdx) return b;
+            // Sub-branch of a nested node inside this branch
+            if (nestedNodeId !== undefined && subBranchIdx !== undefined) {
+              return {
+                ...b,
+                nodes: b.nodes.map((bn) => {
+                  if (bn.id !== nestedNodeId || !bn.branches) return bn;
+                  const subBranches = bn.branches.map((sb, sbi) => {
+                    if (sbi !== subBranchIdx) return sb;
+                    return { ...sb, nodes: [...sb.nodes, { id: uid(), data, panelType, rawData }] };
+                  });
+                  return { ...bn, branches: subBranches };
+                }),
+              };
+            }
             if (editingNodeId) {
               return { ...b, nodes: b.nodes.map((bn) => (bn.id === editingNodeId ? { ...bn, data, panelType, rawData } : bn)) };
             }
@@ -503,10 +601,23 @@ export default function Canvas() {
   };
 
   // Branch-specific helpers for inline card nodes
-  const addBranchInlineNode = (parentNodeId: string, branchIdx: number, node: SavedNode) => {
+  const addBranchInlineNode = (parentNodeId: string, branchIdx: number, node: SavedNode, nestedNodeId?: string, subBranchIdx?: number) => {
     setSavedNodes((prev) => prev.map((n) => {
       if (n.id !== parentNodeId || !n.branches) return n;
-      return { ...n, branches: n.branches.map((b, bi) => bi === branchIdx ? { ...b, nodes: [...b.nodes, node] } : b) };
+      return {
+        ...n, branches: n.branches.map((b, bi) => {
+          if (bi !== branchIdx) return b;
+          if (nestedNodeId !== undefined && subBranchIdx !== undefined) {
+            return {
+              ...b, nodes: b.nodes.map((bn) => {
+                if (bn.id !== nestedNodeId || !bn.branches) return bn;
+                return { ...bn, branches: bn.branches.map((sb, sbi) => sbi === subBranchIdx ? { ...sb, nodes: [...sb.nodes, node] } : sb) };
+              }),
+            };
+          }
+          return { ...b, nodes: [...b.nodes, node] };
+        }),
+      };
     }));
     setPendingBranchNode(null);
   };
@@ -518,7 +629,7 @@ export default function Canvas() {
     }));
   };
 
-  const handleBranchAguardarConfirm = (parentNodeId: string, branchIdx: number, raw: AguardarNodeData) => {
+  const handleBranchAguardarConfirm = (parentNodeId: string, branchIdx: number, raw: AguardarNodeData, nestedNodeId?: string, subBranchIdx?: number) => {
     addBranchInlineNode(parentNodeId, branchIdx, {
       id: uid(),
       panelType: "aguardar",
@@ -530,10 +641,10 @@ export default function Canvas() {
         fields: [{ key: "Duração:", value: `${raw.quantidade} ${raw.unidade}` }],
         aguardarData: raw,
       },
-    });
+    }, nestedNodeId, subBranchIdx);
   };
 
-  const handleBranchJornadaConfirm = (parentNodeId: string, branchIdx: number, raw: JornadaCardNodeData) => {
+  const handleBranchJornadaConfirm = (parentNodeId: string, branchIdx: number, raw: JornadaCardNodeData, nestedNodeId?: string, subBranchIdx?: number) => {
     addBranchInlineNode(parentNodeId, branchIdx, {
       id: uid(),
       panelType: "jornadaOutra",
@@ -545,7 +656,7 @@ export default function Canvas() {
         fields: [{ key: "Redirecionar para:", value: raw.jornada }],
         jornadaData: raw,
       },
-    });
+    }, nestedNodeId, subBranchIdx);
   };
 
   const handleRemoveNode = (nodeId: string) => {
@@ -641,6 +752,25 @@ export default function Canvas() {
   };
 
   const handleSegmentacaoAdd = (raw: SegmentacaoNoNodeData) => {
+    // Editing rawData of a specific branch (bi > 0)
+    if (editingSegBranch) {
+      const { parentNodeId, branchIdx } = editingSegBranch;
+      setSavedNodes((prev) =>
+        prev.map((n) => {
+          if (n.id !== parentNodeId || !n.branches) return n;
+          return {
+            ...n,
+            branches: n.branches.map((b, bi) =>
+              bi === branchIdx ? { ...b, rawData: raw } : b
+            ),
+          };
+        })
+      );
+      setEditingSegBranch(null);
+      setActivePanel("none");
+      return;
+    }
+
     const nodeData = {
       type: "segmentacao",
       color: nodeColors.segmentacao,
@@ -648,6 +778,64 @@ export default function Canvas() {
       label: nodeLabels.segmentacao,
       fields: [{ key: "Segmentação:", value: raw.segmentacao || "—" }],
     };
+    if (branchContext) {
+      const { parentNodeId } = branchContext;
+      const parentNode = savedNodes.find((n) => n.id === parentNodeId);
+
+      // If parent is a segmentation node: add new branch before the negativa (if exists)
+      if (parentNode?.data.type === "segmentacao" && parentNode.branches) {
+        setSavedNodes((prev) =>
+          prev.map((n) => {
+            if (n.id !== parentNodeId || !n.branches) return n;
+            const branches = [...n.branches];
+            const hasNegativa = branches[branches.length - 1]?.isNegativa;
+            const negativa = hasNegativa ? branches.pop()! : null;
+            const segCount = branches.length; // how many seg branches already
+            branches.push({
+              id: uid(),
+              label: `Segmentação ${segCount + 1}`,
+              color: "#f79f28",
+              percentual: 0,
+              nodes: [],
+              rawData: raw,
+            });
+            if (negativa) branches.push(negativa); // restore negativa at the end
+            return { ...n, branches };
+          })
+        );
+        setBranchContext(null);
+        setActivePanel("none");
+        return;
+      }
+
+      // Original behavior: add nested segmentation node inside a non-segmentation branch
+      const { branchIdx } = branchContext;
+      setSavedNodes((prev) =>
+        prev.map((n) => {
+          if (n.id !== parentNodeId || !n.branches) return n;
+          const branches = n.branches.map((b, bi) => {
+            if (bi !== branchIdx) return b;
+            return {
+              ...b,
+              nodes: [...b.nodes, {
+                id: uid(),
+                data: nodeData,
+                panelType: "segmentacao",
+                rawData: raw,
+                branches: [
+                  { id: uid(), label: "Segmentação 1", color: "#f79f28", percentual: 0, nodes: [] },
+                  { id: uid(), label: "Negativa", color: "#9ca3af", percentual: 0, nodes: [] },
+                ],
+              }],
+            };
+          });
+          return { ...n, branches };
+        })
+      );
+      setBranchContext(null);
+      setActivePanel("none");
+      return;
+    }
     if (editingNodeId) {
       // preserve existing branches when editing
       setSavedNodes((prev) =>
@@ -664,13 +852,29 @@ export default function Canvas() {
           data: nodeData,
           rawData: raw,
           branches: [
-            { id: uid(), label: "Passou no filtro", color: "#f79f28", percentual: 0, nodes: [] },
-            { id: uid(), label: "Não passou no filtro", color: "#9ca3af", percentual: 0, nodes: [] },
+            { id: uid(), label: "Segmentação 1", color: "#f79f28", percentual: 0, nodes: [] },
+            // No negativa initially — user adds it via "Adicionar Ramificação" dropdown
           ],
         },
       ]);
       setActivePanel("none");
     }
+  };
+
+  const handleAddNegativa = (parentNodeId: string) => {
+    setSavedNodes((prev) =>
+      prev.map((n) => {
+        if (n.id !== parentNodeId || !n.branches) return n;
+        if (n.branches.some((b) => b.isNegativa)) return n; // already has negativa
+        return {
+          ...n,
+          branches: [
+            ...n.branches,
+            { id: uid(), label: "Negativa", color: "#9ca3af", percentual: 0, nodes: [], isNegativa: true },
+          ],
+        };
+      })
+    );
   };
 
   const autoCollapsed = viewport.zoom <= 0.6;
@@ -689,12 +893,12 @@ export default function Canvas() {
   const topTransform = "translateY(-50%) translateY(41px)";
   const totalNodes = savedNodes.length;
 
-  const nodeWidthOf = (node: SavedNode) => {
+  const nodeWidthOf = (node: SavedNode, forBranchNode = false) => {
     if (node.data.type === "aguardar") return AGUARDAR_WIDTH;
     if (node.data.type === "desisncrever") return DESISNCREVER_WIDTH;
     if (node.data.type === "jornadaOutra") return JORNADA_WIDTH;
     if (node.data.type === "testeAB") return TESTA_B_WIDTH;
-    if (node.data.type === "segmentacao") return 0; // fork renders at junction, card is on Branch 0
+    if (node.data.type === "segmentacao") return forBranchNode ? SEGMENTACAO_CARD_WIDTH : 0;
     return NODE_WIDTH;
   };
 
@@ -962,15 +1166,57 @@ export default function Canvas() {
               const splitRight = splitLeft + splitW;
               const juncX = splitRight + 24;
               const branchStartX = juncX + 40;
-              const BSPC = 220;
+              const BSPC = 300;
+              const isSegmentacao = node.data.type === "segmentacao";
+
+              // Segmentation: all branches have a card, content starts after card width
+              const effectiveBranchStart = isSegmentacao
+                ? branchStartX + SEGMENTACAO_CARD_WIDTH + NODE_GAP
+                : branchStartX;
+
+              // Last non-negativa branch index
+              const lastNonNegBi = isSegmentacao
+                ? (node.branches[N - 1]?.isNegativa ? N - 2 : N - 1)
+                : -1;
+              const hasNegativa = isSegmentacao && Boolean(node.branches[N - 1]?.isNegativa);
+              // Button yo: between last seg and negativa (BSPC/2 below last non-neg center),
+              // or 150px below if no negativa yet
+              const addRamBtnYo = isSegmentacao
+                ? lastNonNegBi * BSPC + BSPC / 2
+                : 0;
+
+              // Shared center X for segmentation vertical line and button
+              const segLineX = branchStartX + Math.floor(SEGMENTACAO_CARD_WIDTH / 2);
 
               return (
                 <div key={`branches-${node.id}`}>
-                  {/* Horizontal stub to junction */}
+                  {/* Horizontal stub from split node right edge to junction */}
                   <SolidConnector style={{ left: `${splitRight}px`, top: "50%", transform: topTransform, width: `${juncX - splitRight}px` }} />
 
-                  {/* Vertical bar spanning all branches */}
-                  {N > 1 && (
+                  {/* Segmentation vertical lines — always rendered for seg nodes:
+                      • Solid: Seg1 → last non-neg seg (only when N > 1 and lastNonNegBi > 0)
+                      • Dashed: last non-neg seg → "Adicionar ramificação" button (always)
+                      • Solid (if negativa): button → negativa */}
+                  {isSegmentacao && (() => {
+                    const solidTopHeight = lastNonNegBi * BSPC;
+                    const dashedHeight = BSPC / 2;
+                    const solidBottomHeight = hasNegativa ? BSPC / 2 : 0;
+                    return (
+                      <>
+                        {solidTopHeight > 0 && (
+                          <div style={{ position: "absolute", left: `${segLineX}px`, top: "50%", transform: `translateY(${41}px)`, width: 2, height: solidTopHeight, background: "#9ca3af" }} />
+                        )}
+                        {/* Dashed: always shown, connects last seg card to the button */}
+                        <div style={{ position: "absolute", left: `${segLineX}px`, top: "50%", transform: `translateY(${41 + lastNonNegBi * BSPC}px)`, width: 0, height: dashedHeight, borderLeft: "2px dashed #9ca3af" }} />
+                        {solidBottomHeight > 0 && (
+                          <div style={{ position: "absolute", left: `${segLineX}px`, top: "50%", transform: `translateY(${41 + addRamBtnYo}px)`, width: 2, height: solidBottomHeight, background: "#9ca3af" }} />
+                        )}
+                      </>
+                    );
+                  })()}
+
+                  {/* Vertical bar for non-segmentation (centered as before) */}
+                  {!isSegmentacao && N > 1 && (
                     <div style={{
                       position: "absolute",
                       left: `${juncX}px`,
@@ -982,77 +1228,125 @@ export default function Canvas() {
                     }} />
                   )}
 
-                  {node.branches.map((branch, bi) => {
-                    const yo = (bi - (N - 1) / 2) * BSPC;
-                    const branchTransform = `translateY(calc(-50% + ${41 + yo}px))`;
+                  {/* "Adicionar Ramificação" button — centered on the card, with dashed line above it */}
+                  {isSegmentacao && (
+                    openBranchDropdownKey === `${node.id}-add` ? (
+                      <BranchDropdown
+                        style={{
+                          left: `${segLineX}px`,
+                          top: "50%",
+                          transform: `translateX(-50%) translateY(calc(-50% + ${41 + addRamBtnYo}px))`,
+                        }}
+                        onSelect={(type) => {
+                          setOpenBranchDropdownKey(null);
+                          if (type === "segmentar") {
+                            setBranchContext({ parentNodeId: node.id, branchIdx: lastNonNegBi });
+                            setActivePanel("segmentacaoConfig");
+                          } else {
+                            handleAddNegativa(node.id);
+                          }
+                        }}
+                        onClose={() => setOpenBranchDropdownKey(null)}
+                      />
+                    ) : (
+                      <AddNodeButton
+                        active={true}
+                        label="Adicionar ramificação"
+                        onClick={() => setOpenBranchDropdownKey(`${node.id}-add`)}
+                        style={{
+                          left: `${segLineX}px`,
+                          top: "50%",
+                          transform: `translateX(-50%) translateY(calc(-50% + ${41 + addRamBtnYo}px))`,
+                        }}
+                      />
+                    )
+                  )}
 
-                    // For segmentação, Branch 0 starts AFTER the card; other branches start at branchStartX
-                    const isSegmentacao = node.data.type === "segmentacao";
-                    const isSegBranch0 = isSegmentacao && bi === 0;
-                    const effectiveBranchStart = isSegBranch0
-                      ? branchStartX + SEGMENTACAO_CARD_WIDTH + NODE_GAP
-                      : branchStartX;
+                  {node.branches.map((branch, bi) => {
+                    // Segmentation: branch 0 at yo=0 (same Y as main flow), branches 1+ go DOWN
+                    // Non-segmentation: centered around 0 (original behavior)
+                    const yo = isSegmentacao
+                      ? bi * BSPC
+                      : (bi - (N - 1) / 2) * BSPC;
+                    const branchTransform = `translateY(calc(-50% + ${41 + yo}px))`;
+                    const isNegativaBranch = branch.isNegativa === true;
 
                     // Branch node positions
                     const branchPositions: number[] = [];
                     let bx = effectiveBranchStart;
                     for (const bn of branch.nodes) {
                       branchPositions.push(bx);
-                      bx += nodeWidthOf(bn) + NODE_GAP;
+                      bx += nodeWidthOf(bn, true) + NODE_GAP;
                     }
                     const lastRight = branch.nodes.length > 0
-                      ? branchPositions[branch.nodes.length - 1] + nodeWidthOf(branch.nodes[branch.nodes.length - 1])
+                      ? branchPositions[branch.nodes.length - 1] + nodeWidthOf(branch.nodes[branch.nodes.length - 1], true)
                       : effectiveBranchStart;
+
+                    // Which rawData to use for the seg card of this branch
+                    const segCardData = bi === 0
+                      ? (node.rawData as SegmentacaoNoNodeData | undefined)
+                      : (branch.rawData as SegmentacaoNoNodeData | undefined);
 
                     return (
                       <div key={branch.id}>
-                        {/* Horizontal connector from vertical bar to first content */}
-                        <div style={{
-                          position: "absolute",
-                          left: `${juncX + 2}px`,
-                          top: "50%",
-                          transform: branchTransform,
-                          width: branchStartX - juncX - 2,
-                          height: 2,
-                          background: "#9ca3af",
-                        }} />
+                        {/* Horizontal stub: for non-segmentation (all branches) and
+                            segmentation branch 0 only (main flow connection to Seg Card 1).
+                            Branches 1+ of segmentation connect via the vertical bar at branchStartX+14. */}
+                        {(!isSegmentacao || bi === 0) && (
+                          <div style={{
+                            position: "absolute",
+                            left: `${juncX + 2}px`,
+                            top: "50%",
+                            transform: branchTransform,
+                            width: branchStartX - juncX - 2,
+                            height: 2,
+                            background: "#9ca3af",
+                          }} />
+                        )}
 
-                        {/* Branch label chip */}
-                        <div style={{
-                          position: "absolute",
-                          left: `${branchStartX}px`,
-                          top: "50%",
-                          transform: `translateY(calc(-50% + ${41 + yo - 22}px))`,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          background: `${branch.color}20`,
-                          border: `1px solid ${branch.color}60`,
-                          borderRadius: 99,
-                          padding: "2px 8px",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: "#343b44",
-                          whiteSpace: "nowrap",
-                          pointerEvents: "none",
-                          userSelect: "none",
-                        }}>
-                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: branch.color, flexShrink: 0 }} />
-                          {isSegmentacao ? branch.label : `${branch.label} · ${branch.percentual}%`}
-                        </div>
+                        {/* Branch label chip (non-segmentation only) */}
+                        {!isSegmentacao && (
+                          <div style={{
+                            position: "absolute",
+                            left: `${branchStartX}px`,
+                            top: "50%",
+                            transform: `translateY(calc(-50% + ${41 + yo - 22}px))`,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            background: `${branch.color}20`,
+                            border: `1px solid ${branch.color}60`,
+                            borderRadius: 99,
+                            padding: "2px 8px",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "#343b44",
+                            whiteSpace: "nowrap",
+                            pointerEvents: "none",
+                            userSelect: "none",
+                          }}>
+                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: branch.color, flexShrink: 0 }} />
+                            {`${branch.label} · ${branch.percentual}%`}
+                          </div>
+                        )}
 
-                        {/* Segmentação Branch 0: render the segmentação card first */}
-                        {isSegBranch0 && (
+                        {/* Segmentation: render card for each branch */}
+                        {isSegmentacao && !isNegativaBranch && (
                           <>
                             <SegmentacaoCardNode
-                              initialData={node.rawData as SegmentacaoNoNodeData | undefined}
+                              initialData={segCardData}
                               style={{ left: `${branchStartX}px`, top: "50%", transform: branchTransform }}
                               forceCollapsed={autoCollapsed}
-                              onEdit={() => handleEditNode(node.id)}
-                              onRemove={() => handleRemoveNode(node.id)}
+                              priority={bi + 1}
+                              onEdit={
+                                bi === 0
+                                  ? () => handleEditNode(node.id)
+                                  : () => { setEditingSegBranch({ parentNodeId: node.id, branchIdx: bi }); setActivePanel("segmentacaoConfig"); }
+                              }
+                              onRemove={bi === 0 ? () => handleRemoveNode(node.id) : undefined}
                             />
-                            {/* Connector from segmentação card to first branch node (or to add button) */}
-                            {branch.nodes.length > 0 || pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi ? (
+                            {/* Connector from card to first branch node (or add button) */}
+                            {branch.nodes.length > 0 || (pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi) ? (
                               <SolidConnector style={{
                                 left: `${branchStartX + SEGMENTACAO_CARD_WIDTH}px`,
                                 top: "50%",
@@ -1072,6 +1366,57 @@ export default function Canvas() {
                           </>
                         )}
 
+                        {/* Negativa card (last branch of segmentation node) */}
+                        {isNegativaBranch && (() => {
+                          const NEGATIVA_W = SEGMENTACAO_CARD_WIDTH;
+                          const BAR_W = NEGATIVA_W - 44 + 16;
+                          const negStyle: React.CSSProperties = {
+                            position: "absolute",
+                            left: `${branchStartX}px`,
+                            top: "50%",
+                            transform: branchTransform,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-end",
+                          };
+                          return (
+                            <div style={negStyle}>
+                              {/* Header — badge + bar */}
+                              <div style={{ display: "flex", alignItems: "center", position: "relative", zIndex: 2 }}>
+                                <div style={{
+                                  width: 44, height: 44, background: "#f79f28", borderRadius: 8,
+                                  border: "2px solid white", display: "flex", alignItems: "center",
+                                  justifyContent: "center", marginRight: -16, zIndex: 2, flexShrink: 0,
+                                }}>
+                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z" />
+                                  </svg>
+                                </div>
+                                <div style={{
+                                  width: BAR_W, background: "#f79f28",
+                                  borderRadius: autoCollapsed ? 8 : "8px 8px 0 0",
+                                  padding: "10px 8px 10px 26px",
+                                  display: "flex", alignItems: "center", zIndex: 1,
+                                }}>
+                                  <span style={{ fontSize: 16, fontWeight: 600, color: "white", whiteSpace: "nowrap" }}>Negativa</span>
+                                </div>
+                              </div>
+                              {/* Body — hidden when collapsed */}
+                              {!autoCollapsed && (
+                                <div style={{
+                                  width: BAR_W, background: "white",
+                                  borderRadius: "0 0 8px 8px", padding: 16, zIndex: 1,
+                                  borderLeft: "1px solid #e8eaec", borderRight: "1px solid #e8eaec", borderBottom: "1px solid #e8eaec",
+                                }}>
+                                  <p style={{ fontSize: 14, color: "#4c535c", lineHeight: 1.5, margin: 0 }}>
+                                    Caso o usuário não preencha os requisitos das demais segmentações ele continuará por este caminho
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
                         {/* Branch nodes */}
                         {branch.nodes.map((branchNode, bni) => {
                           const bStyle = { left: `${branchPositions[bni]}px`, top: "50%", transform: branchTransform };
@@ -1079,7 +1424,59 @@ export default function Canvas() {
                           const hasPending = isLast && pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi;
                           return (
                             <div key={branchNode.id}>
-                              {branchNode.data.type === "aguardar" ? (
+                              {branchNode.data.type === "segmentacao" ? (
+                                <>
+                                  <SegmentacaoCardNode
+                                    initialData={branchNode.rawData as SegmentacaoNoNodeData | undefined}
+                                    style={bStyle}
+                                    forceCollapsed={autoCollapsed}
+                                    onEdit={() => handleEditNode(branchNode.id, { parentNodeId: node.id, branchIdx: bi })}
+                                    onRemove={() => handleRemoveNode(branchNode.id)}
+                                  />
+                                  {branchNode.branches && (() => {
+                                    const SN = branchNode.branches.length;
+                                    const subCardRight = branchPositions[bni] + SEGMENTACAO_CARD_WIDTH;
+                                    const subJuncX = subCardRight + 24;
+                                    const subBranchStartX = subJuncX + 40;
+                                    const SUB_BSPC = 200;
+                                    return (
+                                      <>
+                                        <SolidConnector style={{ left: `${subCardRight}px`, top: "50%", transform: branchTransform, width: "24px" }} />
+                                        {SN > 1 && (
+                                          <div style={{
+                                            position: "absolute",
+                                            left: `${subJuncX}px`,
+                                            top: "50%",
+                                            transform: `translateY(calc(-50% + ${41 + yo}px))`,
+                                            width: 2,
+                                            height: (SN - 1) * SUB_BSPC,
+                                            background: "#9ca3af",
+                                          }} />
+                                        )}
+                                        {branchNode.branches.map((subBranch, sbi) => {
+                                          const subYo = (sbi - (SN - 1) / 2) * SUB_BSPC;
+                                          const subTransform = `translateY(calc(-50% + ${41 + yo + subYo}px))`;
+                                          return (
+                                            <div key={subBranch.id}>
+                                              <div style={{ position: "absolute", left: `${subJuncX + 2}px`, top: "50%", transform: subTransform, width: subBranchStartX - subJuncX - 2, height: 2, background: "#9ca3af" }} />
+                                              <DashedConnector style={{ left: `${subBranchStartX}px`, top: "50%", transform: subTransform, width: "72px" }} />
+                                              <AddNodeButton
+                                                active={true}
+                                                label="Adicionar nó"
+                                                style={{ left: `${subBranchStartX + 72}px`, top: "50%", transform: subTransform }}
+                                                onClick={() => {
+                                                  setBranchContext({ parentNodeId: node.id, branchIdx: bi, nestedNodeId: branchNode.id, subBranchIdx: sbi });
+                                                  handleOpenAdicionarNo();
+                                                }}
+                                              />
+                                            </div>
+                                          );
+                                        })}
+                                      </>
+                                    );
+                                  })()}
+                                </>
+                              ) : branchNode.data.type === "aguardar" ? (
                                 <AguardarCardNode
                                   initialData={branchNode.data.aguardarData}
                                   style={bStyle}
@@ -1112,12 +1509,14 @@ export default function Canvas() {
                               )}
                               {!isLast ? (
                                 <SolidConnector style={{
-                                  left: `${branchPositions[bni] + nodeWidthOf(branchNode)}px`,
+                                  left: `${branchPositions[bni] + nodeWidthOf(branchNode, true)}px`,
                                   top: "50%",
                                   transform: branchTransform,
-                                  width: `${branchPositions[bni + 1] - branchPositions[bni] - nodeWidthOf(branchNode)}px`,
+                                  width: `${branchPositions[bni + 1] - branchPositions[bni] - nodeWidthOf(branchNode, true)}px`,
                                 }} />
                               ) : branchNode.data.type === "desisncrever" ? (
+                                null
+                              ) : branchNode.data.type === "segmentacao" && branchNode.branches ? (
                                 null
                               ) : hasPending ? (
                                 <SolidConnector style={{ left: `${lastRight}px`, top: "50%", transform: branchTransform, width: `${NODE_GAP}px` }} />
@@ -1145,7 +1544,7 @@ export default function Canvas() {
                             <AguardarCardNode
                               isNew
                               style={pStyle}
-                              onConfirm={(data) => handleBranchAguardarConfirm(node.id, bi, data)}
+                              onConfirm={(data) => handleBranchAguardarConfirm(node.id, bi, data, pbn.nestedNodeId, pbn.subBranchIdx)}
                               onCancel={() => setPendingBranchNode(null)}
                               onRemove={() => setPendingBranchNode(null)}
                             />
@@ -1153,27 +1552,43 @@ export default function Canvas() {
                             <JornadaCardNode
                               isNew
                               style={pStyle}
-                              onConfirm={(data) => handleBranchJornadaConfirm(node.id, bi, data)}
+                              onConfirm={(data) => handleBranchJornadaConfirm(node.id, bi, data, pbn.nestedNodeId, pbn.subBranchIdx)}
                               onCancel={() => setPendingBranchNode(null)}
                               onRemove={() => setPendingBranchNode(null)}
                             />
                           );
                         })()}
 
-                        {/* Empty branch — show add button (unless pending or segmentação Branch 0 which has its own) */}
-                        {branch.nodes.length === 0 && !pendingBranchNode && !isSegBranch0 && (
+                        {/* Empty non-segmentation branch — show add button */}
+                        {!isSegmentacao && branch.nodes.length === 0 && !pendingBranchNode && (
                           <>
                             <DashedConnector style={{ left: `${branchStartX}px`, top: "50%", transform: branchTransform, width: "72px" }} />
                             <AddNodeButton
                               active={true}
+                              label="Adicionar nó"
                               onClick={() => { setBranchContext({ parentNodeId: node.id, branchIdx: bi }); handleOpenAdicionarNo(); }}
                               style={{ left: `${branchStartX + 72}px`, top: "50%", transform: branchTransform }}
                             />
                           </>
                         )}
-                        {/* Empty branch with pending — solid connector */}
-                        {branch.nodes.length === 0 && pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi && !isSegBranch0 && (
+                        {/* Empty non-segmentation branch with pending — solid connector */}
+                        {!isSegmentacao && branch.nodes.length === 0 && pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi && (
                           <SolidConnector style={{ left: `${branchStartX - NODE_GAP}px`, top: "50%", transform: branchTransform, width: `${NODE_GAP}px` }} />
+                        )}
+
+                        {/* Negativa branch: empty state — show add button to the right of negativa card */}
+                        {isNegativaBranch && branch.nodes.length === 0 && !pendingBranchNode && (
+                          <>
+                            <DashedConnector style={{ left: `${branchStartX + SEGMENTACAO_CARD_WIDTH}px`, top: "50%", transform: branchTransform, width: "72px" }} />
+                            <AddNodeButton
+                              active={true}
+                              onClick={() => { setBranchContext({ parentNodeId: node.id, branchIdx: bi }); handleOpenAdicionarNo(); }}
+                              style={{ left: `${branchStartX + SEGMENTACAO_CARD_WIDTH + 72}px`, top: "50%", transform: branchTransform }}
+                            />
+                          </>
+                        )}
+                        {isNegativaBranch && branch.nodes.length === 0 && pendingBranchNode?.parentNodeId === node.id && pendingBranchNode.branchIdx === bi && (
+                          <SolidConnector style={{ left: `${branchStartX + SEGMENTACAO_CARD_WIDTH}px`, top: "50%", transform: branchTransform, width: `${NODE_GAP}px` }} />
                         )}
                       </div>
                     );
@@ -1238,7 +1653,17 @@ export default function Canvas() {
         <WebhooksPanel onClose={handleClosePanel} onAdd={handleWebhooksAdd} onRemove={removeHandler} initialData={editingNode?.rawData as WebhooksNodeData | undefined} />
       )}
       {activePanel === "segmentacaoConfig" && (
-        <SegmentacaoNoPanel onClose={handleClosePanel} onAdd={handleSegmentacaoAdd} onRemove={removeHandler} initialData={editingNode?.rawData as SegmentacaoNoNodeData | undefined} />
+        <SegmentacaoNoPanel
+          onClose={handleClosePanel}
+          onAdd={handleSegmentacaoAdd}
+          onRemove={removeHandler}
+          initialData={
+            editingSegBranch
+              ? (savedNodes.find((n) => n.id === editingSegBranch.parentNodeId)
+                  ?.branches?.[editingSegBranch.branchIdx]?.rawData as SegmentacaoNoNodeData | undefined)
+              : (editingNode?.rawData as SegmentacaoNoNodeData | undefined)
+          }
+        />
       )}
       {activePanel === "testeABConfig" && (
         <TesteABPanel onClose={handleClosePanel} onAdd={handleTesteABAdd} onRemove={removeHandler} initialData={editingNode?.rawData as TesteABCardNodeData | undefined} />
