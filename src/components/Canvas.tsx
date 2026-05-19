@@ -752,18 +752,35 @@ export default function Canvas() {
   };
 
   const handleSegmentacaoAdd = (raw: SegmentacaoNoNodeData) => {
+    const newPriority = raw.prioridade; // 1-based
+
+    // Sync labels and rawData.prioridade after reorder.
+    // fallback fills branches that were created without rawData (e.g. the original branches[0]).
+    const syncBranchOrder = (branches: BranchChain[], fallback?: unknown) => {
+      branches.forEach((b, i) => {
+        b.label = `Segmentação ${i + 1}`;
+        const rd = (b.rawData ?? fallback) as SegmentacaoNoNodeData | undefined;
+        if (rd) b.rawData = { ...rd, prioridade: i + 1 };
+      });
+    };
+
     // Editing rawData of a specific branch (bi > 0)
     if (editingSegBranch) {
       const { parentNodeId, branchIdx } = editingSegBranch;
       setSavedNodes((prev) =>
         prev.map((n) => {
           if (n.id !== parentNodeId || !n.branches) return n;
-          return {
-            ...n,
-            branches: n.branches.map((b, bi) =>
-              bi === branchIdx ? { ...b, rawData: raw } : b
-            ),
-          };
+          const branches = [...n.branches];
+          const negativa = branches[branches.length - 1]?.isNegativa ? branches.pop()! : null;
+          branches[branchIdx] = { ...branches[branchIdx], rawData: raw };
+          if (newPriority !== undefined && newPriority !== branchIdx + 1) {
+            const [moved] = branches.splice(branchIdx, 1);
+            branches.splice(newPriority - 1, 0, moved);
+          }
+          syncBranchOrder(branches, n.rawData);
+          if (negativa) branches.push(negativa);
+          // Keep node.rawData in sync with whatever is now at position 0
+          return { ...n, branches, rawData: branches[0].rawData ?? n.rawData };
         })
       );
       setEditingSegBranch(null);
@@ -790,17 +807,19 @@ export default function Canvas() {
             const branches = [...n.branches];
             const hasNegativa = branches[branches.length - 1]?.isNegativa;
             const negativa = hasNegativa ? branches.pop()! : null;
-            const segCount = branches.length; // how many seg branches already
-            branches.push({
+            const newBranch = {
               id: uid(),
-              label: `Segmentação ${segCount + 1}`,
+              label: "",
               color: "#f79f28",
               percentual: 0,
               nodes: [],
               rawData: raw,
-            });
-            if (negativa) branches.push(negativa); // restore negativa at the end
-            return { ...n, branches };
+            };
+            const insertAt = newPriority !== undefined ? newPriority - 1 : branches.length;
+            branches.splice(insertAt, 0, newBranch);
+            syncBranchOrder(branches, n.rawData);
+            if (negativa) branches.push(negativa);
+            return { ...n, branches, rawData: branches[0].rawData ?? n.rawData };
           })
         );
         setBranchContext(null);
@@ -839,7 +858,21 @@ export default function Canvas() {
     if (editingNodeId) {
       // preserve existing branches when editing
       setSavedNodes((prev) =>
-        prev.map((n) => (n.id === editingNodeId ? { ...n, data: nodeData, rawData: raw } : n))
+        prev.map((n) => {
+          if (n.id !== editingNodeId) return n;
+          if (newPriority !== undefined && newPriority !== 1 && n.branches) {
+            const branches = [...n.branches];
+            const negativa = branches[branches.length - 1]?.isNegativa ? branches.pop()! : null;
+            branches[0] = { ...branches[0], rawData: raw };
+            const [moved] = branches.splice(0, 1);
+            branches.splice(newPriority - 1, 0, moved);
+            syncBranchOrder(branches, n.rawData);
+            if (negativa) branches.push(negativa);
+            // node.rawData must reflect the new bi=0 content
+            return { ...n, data: nodeData, rawData: branches[0].rawData ?? raw, branches };
+          }
+          return { ...n, data: nodeData, rawData: raw };
+        })
       );
       setActivePanel("none");
       setEditingNodeId(null);
@@ -852,7 +885,7 @@ export default function Canvas() {
           data: nodeData,
           rawData: raw,
           branches: [
-            { id: uid(), label: "Segmentação 1", color: "#f79f28", percentual: 0, nodes: [] },
+            { id: uid(), label: "Segmentação 1", color: "#f79f28", percentual: 0, nodes: [], rawData: raw },
             // No negativa initially — user adds it via "Adicionar Ramificação" dropdown
           ],
         },
@@ -1674,19 +1707,40 @@ export default function Canvas() {
       {activePanel === "webhooksConfig" && (
         <WebhooksPanel onClose={handleClosePanel} onAdd={handleWebhooksAdd} onRemove={removeHandler} initialData={editingNode?.rawData as WebhooksNodeData | undefined} />
       )}
-      {activePanel === "segmentacaoConfig" && (
-        <SegmentacaoNoPanel
-          onClose={handleClosePanel}
-          onAdd={handleSegmentacaoAdd}
-          onRemove={removeHandler}
-          initialData={
-            editingSegBranch
-              ? (savedNodes.find((n) => n.id === editingSegBranch.parentNodeId)
-                  ?.branches?.[editingSegBranch.branchIdx]?.rawData as SegmentacaoNoNodeData | undefined)
-              : (editingNode?.rawData as SegmentacaoNoNodeData | undefined)
-          }
-        />
-      )}
+      {activePanel === "segmentacaoConfig" && (() => {
+        const segPanelParentNode = editingSegBranch
+          ? savedNodes.find((n) => n.id === editingSegBranch.parentNodeId)
+          : (editingNodeId && !branchContext)
+            ? savedNodes.find((n) => n.id === editingNodeId)
+            : (branchContext && !editingNodeId)
+              ? savedNodes.find((n) => n.id === branchContext.parentNodeId)
+              : null;
+        const segNonNegBranches = segPanelParentNode?.branches?.filter((b) => !b.isNegativa) ?? [];
+        const isCreating = !editingSegBranch && !editingNodeId;
+        const segPanelSegCount = isCreating
+          ? (segNonNegBranches.length > 0 ? segNonNegBranches.length + 1 : 1)
+          : segNonNegBranches.length;
+        const segPanelCurrentPriority = editingSegBranch
+          ? editingSegBranch.branchIdx + 1
+          : editingNodeId
+            ? 1
+            : segPanelSegCount;
+        return (
+          <SegmentacaoNoPanel
+            onClose={handleClosePanel}
+            onAdd={handleSegmentacaoAdd}
+            onRemove={removeHandler}
+            segCount={segPanelSegCount}
+            currentPriority={segPanelCurrentPriority}
+            initialData={
+              editingSegBranch
+                ? (savedNodes.find((n) => n.id === editingSegBranch.parentNodeId)
+                    ?.branches?.[editingSegBranch.branchIdx]?.rawData as SegmentacaoNoNodeData | undefined)
+                : (editingNode?.rawData as SegmentacaoNoNodeData | undefined)
+            }
+          />
+        );
+      })()}
       {activePanel === "testeABConfig" && (
         <TesteABPanel onClose={handleClosePanel} onAdd={handleTesteABAdd} onRemove={removeHandler} initialData={editingNode?.rawData as TesteABCardNodeData | undefined} />
       )}

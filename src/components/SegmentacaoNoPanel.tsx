@@ -11,6 +11,7 @@ export interface SegmentacaoResumoRow {
 
 export interface SegmentacaoNoNodeData {
   segmentacao: string;
+  prioridade?: number;
   salvarParaReutilizar?: boolean;
   resumo?: SegmentacaoResumoRow[];
 }
@@ -20,6 +21,8 @@ interface SegmentacaoNoPanelProps {
   onAdd: (data: SegmentacaoNoNodeData) => void;
   onRemove?: () => void;
   initialData?: Partial<SegmentacaoNoNodeData>;
+  segCount?: number;
+  currentPriority?: number;
 }
 
 const COLOR = "#f79f28";
@@ -284,10 +287,12 @@ function AddBtn({ label, onClick }: { label: string; onClick?: () => void }) {
   );
 }
 
-export default function SegmentacaoNoPanel({ onClose, onAdd, onRemove, initialData }: SegmentacaoNoPanelProps) {
+export default function SegmentacaoNoPanel({ onClose, onAdd, onRemove, initialData, segCount = 1, currentPriority = 1 }: SegmentacaoNoPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [segmentacao, setSegmentacao] = useState(initialData?.segmentacao ?? "");
+  const [prioridade, setPrioridade] = useState(currentPriority);
   const [salvarParaReutilizar, setSalvarParaReutilizar] = useState(initialData?.salvarParaReutilizar ?? false);
+  const showPriority = segCount >= 2;
 
   /* section open states */
   const [open, setOpen] = useState({ queFez: true, queNaoFez: true, possuiProp: true, possuiTags: true, naoPossuiTags: true, importou: true });
@@ -329,7 +334,7 @@ export default function SegmentacaoNoPanel({ onClose, onAdd, onRemove, initialDa
       resumo.push({ label: "Usuários que fizeram", items: ["Evento configurado", "Período selecionado"] });
     if (queNaoFezEvents.length > 0)
       resumo.push({ label: "E não fez", items: ["Evento configurado"] });
-    onAdd({ segmentacao, salvarParaReutilizar, resumo });
+    onAdd({ segmentacao, prioridade, salvarParaReutilizar, resumo });
   };
 
   return (
@@ -359,20 +364,39 @@ export default function SegmentacaoNoPanel({ onClose, onAdd, onRemove, initialDa
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-[20px] flex flex-col gap-[16px] min-h-0">
 
-        {/* Select segmentação */}
-        <div className="flex flex-col gap-[6px]">
-          <label className="text-sm font-medium text-[#343b44]">Segmentação</label>
-          <div className="relative">
-            <select
-              className={selectCls}
-              value={segmentacao}
-              onChange={(e) => setSegmentacao(e.target.value)}
-            >
-              <option value="" disabled>Selecione uma segmentação</option>
-              {SEGMENTACOES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <span className="absolute right-[8px] top-1/2 -translate-y-1/2 pointer-events-none">{icons.chevronDown}</span>
+        {/* Segmentação + Prioridade (side-by-side when priority visible) */}
+        <div className={`flex gap-[8px] ${showPriority ? "flex-row items-end" : "flex-col"}`}>
+          <div className={`flex flex-col gap-[6px] ${showPriority ? "flex-1 min-w-0" : ""}`}>
+            <label className="text-sm font-medium text-[#343b44]">Segmentação</label>
+            <div className="relative">
+              <select
+                className={selectCls}
+                value={segmentacao}
+                onChange={(e) => setSegmentacao(e.target.value)}
+              >
+                <option value="" disabled>Selecione uma segmentação</option>
+                {SEGMENTACOES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <span className="absolute right-[8px] top-1/2 -translate-y-1/2 pointer-events-none">{icons.chevronDown}</span>
+            </div>
           </div>
+          {showPriority && (
+            <div className="flex flex-col gap-[6px] flex-1 min-w-0">
+              <label className="text-sm font-medium text-[#343b44]">Prioridade da segmentação</label>
+              <div className="relative">
+                <select
+                  className={selectCls}
+                  value={prioridade}
+                  onChange={(e) => setPrioridade(Number(e.target.value))}
+                >
+                  {Array.from({ length: segCount }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                <span className="absolute right-[8px] top-1/2 -translate-y-1/2 pointer-events-none">{icons.chevronDown}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Que fez os eventos */}
