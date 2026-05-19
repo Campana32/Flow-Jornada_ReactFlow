@@ -328,6 +328,24 @@ export default function Canvas() {
     ? () => { handleRemoveNode(editingNodeId); handleClosePanel(); }
     : undefined;
 
+  // For segmentation panel: bi=0 removes the whole node, bi>0 removes that branch
+  const segRemoveHandler = editingSegBranch
+    ? () => {
+        const { parentNodeId, branchIdx } = editingSegBranch;
+        setSavedNodes((prev) =>
+          prev.map((n) => {
+            if (n.id !== parentNodeId || !n.branches) return n;
+            const branches = n.branches.filter((_, i) => i !== branchIdx);
+            const negativa = branches[branches.length - 1]?.isNegativa ? branches.pop()! : null;
+            branches.forEach((b, i) => { b.label = `Segmentação ${i + 1}`; });
+            if (negativa) branches.push(negativa);
+            return { ...n, branches, rawData: branches[0]?.rawData ?? n.rawData };
+          })
+        );
+        handleClosePanel();
+      }
+    : removeHandler;
+
   const editingNode = editingNodeId
     ? branchContext
       ? savedNodes
@@ -1729,7 +1747,7 @@ export default function Canvas() {
           <SegmentacaoNoPanel
             onClose={handleClosePanel}
             onAdd={handleSegmentacaoAdd}
-            onRemove={removeHandler}
+            onRemove={segRemoveHandler}
             segCount={segPanelSegCount}
             currentPriority={segPanelCurrentPriority}
             initialData={
