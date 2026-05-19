@@ -182,7 +182,7 @@ function BranchDropdown({
           <svg width="14" height="14" viewBox="27 54 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M34.0007 54.3335C30.3207 54.3335 27.334 57.3202 27.334 61.0002C27.334 64.6802 30.3207 67.6668 34.0007 67.6668C37.6807 67.6668 40.6673 64.6802 40.6673 61.0002C40.6673 57.3202 37.6807 54.3335 34.0007 54.3335ZM34.0007 66.3335C31.0607 66.3335 28.6673 63.9402 28.6673 61.0002C28.6673 58.0602 31.0607 55.6668 34.0007 55.6668C36.9407 55.6668 39.334 58.0602 39.334 61.0002C39.334 63.9402 36.9407 66.3335 34.0007 66.3335ZM30.6673 60.3335H37.334V61.6668H30.6673V60.3335Z" fill="#6F7680"/>
           </svg>
-          <span className="text-sm text-[#343B44]">Não atende</span>
+          <span className="text-sm text-[#343B44]">Negativa</span>
         </button>
       </div>
     </div>
@@ -877,6 +877,15 @@ export default function Canvas() {
     );
   };
 
+  const handleRemoveNegativa = (parentNodeId: string) => {
+    setSavedNodes((prev) =>
+      prev.map((n) => {
+        if (n.id !== parentNodeId || !n.branches) return n;
+        return { ...n, branches: n.branches.filter((b) => !b.isNegativa) };
+      })
+    );
+  };
+
   const autoCollapsed = viewport.zoom <= 0.6;
 
   const canvasW = canvasRef.current?.clientWidth ?? 1200;
@@ -1396,9 +1405,22 @@ export default function Canvas() {
                                   width: BAR_W, background: "#f79f28",
                                   borderRadius: autoCollapsed ? 8 : "8px 8px 0 0",
                                   padding: "10px 8px 10px 26px",
-                                  display: "flex", alignItems: "center", zIndex: 1,
+                                  display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 1,
                                 }}>
                                   <span style={{ fontSize: 16, fontWeight: 600, color: "white", whiteSpace: "nowrap" }}>Negativa</span>
+                                  <button
+                                    onClick={() => handleRemoveNegativa(node.id)}
+                                    style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, background: "transparent", border: "none", cursor: "pointer", flexShrink: 0 }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                                  >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="3 6 5 6 21 6" />
+                                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                      <path d="M10 11v6M14 11v6" />
+                                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                                    </svg>
+                                  </button>
                                 </div>
                               </div>
                               {/* Body — hidden when collapsed */}
