@@ -4,6 +4,7 @@ interface EntradaCardProps {
   onConfigure: () => void;
   savedSegmentacao?: string;
   forceCollapsed?: boolean;
+  noPosition?: boolean;
 }
 
 function IcEdit() {
@@ -54,14 +55,14 @@ function FilterRow({ label, values }: { label: string; values: string[] }) {
   );
 }
 
-export default function EntradaCard({ onConfigure, savedSegmentacao, forceCollapsed }: EntradaCardProps) {
+export default function EntradaCard({ onConfigure, savedSegmentacao, forceCollapsed, noPosition }: EntradaCardProps) {
   const isSaved = Boolean(savedSegmentacao);
   const bodyVisible = !forceCollapsed;
 
   return (
     <div
-      className="absolute"
-      style={{ left: "24px", top: "50%", transform: "translateY(-50%) translateY(41px)" }}
+      className={noPosition ? "" : "absolute"}
+      style={noPosition ? {} : { left: "24px", top: "50%", transform: "translateY(-50%) translateY(41px)" }}
     >
       <div className="flex flex-col items-end isolate relative">
 

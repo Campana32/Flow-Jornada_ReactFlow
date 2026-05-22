@@ -8,7 +8,7 @@ interface ZoomControlProps {
 
 export default function ZoomControl({ zoom, onZoomIn, onZoomOut }: ZoomControlProps) {
   return (
-    <div className="absolute bottom-[148px] right-[24px] flex items-center gap-[8px] bg-white rounded-[12px] p-[8px] shadow-sm z-10 pointer-events-auto">
+    <div className="absolute bottom-[196px] right-[24px] flex items-center gap-[8px] bg-white rounded-[12px] p-[8px] shadow-sm z-10 pointer-events-auto">
       <button
         onClick={onZoomOut}
         className="flex items-center justify-center rounded-[8px] p-[8px] hover:bg-gray-100 transition-colors"
