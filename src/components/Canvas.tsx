@@ -106,8 +106,15 @@ function FlowCanvas() {
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-  /* Positions ref — updated on drag, NOT a dep of the rebuild effect */
+  /* Positions ref — loaded from localStorage, updated on drag */
   const posRef = useRef<Record<string, { x: number; y: number }>>({});
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("flow-node-positions");
+      if (saved) posRef.current = JSON.parse(saved);
+    } catch {}
+  }, []);
 
   /* Rebuild RF graph whenever flow structure changes */
   useEffect(() => {
@@ -130,9 +137,12 @@ function FlowCanvas() {
     ctx.pendingBranchNode,
   ]);
 
-  /* Persist dragged positions without triggering a full rebuild */
+  /* Persist dragged positions to localStorage without triggering a full rebuild */
   const onNodeDragStop: NodeMouseHandler = useCallback((_evt, node) => {
     posRef.current = { ...posRef.current, [node.id]: { x: node.position.x, y: node.position.y } };
+    try {
+      localStorage.setItem("flow-node-positions", JSON.stringify(posRef.current));
+    } catch {}
   }, []);
 
   return (
