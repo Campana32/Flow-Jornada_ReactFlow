@@ -354,19 +354,24 @@ export function buildFlowGraph({
         }
       });
 
-      /* "Adicionar ramificação" button */
-      const addRamY = nonNegBranches.length * BSPC - BSPC / 2;
+      /* "Adicionar ramificação" button — anchored below the last non-neg seg card */
+      const lastNonNegSegId = lastNonNegBi === 0 ? node.id : `${node.id}-seg-${lastNonNegBi}`;
       const addRamId = `add-ram-${node.id}`;
       nodes.push({
         id: addRamId,
         type: "addBtnNode",
-        position: pos(addRamId, segCardX + SEGMENTACAO_CARD_WIDTH / 2 - 80, addRamY),
+        // position is relative to parentId; y is updated by the sync effect in FlowCanvas
+        position: { x: SEGMENTACAO_CARD_WIDTH / 2 - 80, y: 40 },
+        parentId: lastNonNegSegId,
         draggable: false,
+        zIndex: 9999,
         data: {
           label: "Adicionar ramificação",
           isAddBranch: true,
           nodeId: node.id,
           lastNonNegBi,
+          _parentNodeId: lastNonNegSegId,
+          _placement: "below",
         },
       });
 

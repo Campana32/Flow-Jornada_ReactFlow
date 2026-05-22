@@ -143,6 +143,9 @@ function FlowCanvas() {
   /* Positions ref — loaded from localStorage, updated on drag */
   const posRef = useRef<Record<string, { x: number; y: number }>>({});
 
+  /* Heights ref — used by sync effect to detect changes */
+  const prevHeightsRef = useRef<Record<string, number>>({});
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("flow-node-positions");
@@ -162,6 +165,8 @@ function FlowCanvas() {
     });
     setRfNodes(nodes);
     setRfEdges(edges);
+    // Reset so the sync effect re-runs and repositions add buttons after rebuild
+    prevHeightsRef.current = {};
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     ctx.savedNodes,
@@ -172,7 +177,6 @@ function FlowCanvas() {
   ]);
 
   /* Sync add-button y position to vertically center with their parent card */
-  const prevHeightsRef = useRef<Record<string, number>>({});
   useEffect(() => {
     const heights: Record<string, number> = {};
     rfNodes.forEach((n) => {
@@ -190,10 +194,13 @@ function FlowCanvas() {
       let dirty = false;
       const next = prev.map((n) => {
         if (n.type !== "addBtnNode") return n;
-        const pid = (n.data as { _parentNodeId?: string })._parentNodeId;
+        const d = n.data as { _parentNodeId?: string; _placement?: string };
+        const pid = d._parentNodeId;
         const ph = pid ? heights[pid] : undefined;
         if (!ph) return n;
-        const newY = Math.max(0, (ph - 36) / 2);
+        const newY = d._placement === "below"
+          ? ph + 40                          // abaixo do card com 40px de gap (linha pontilhada)
+          : Math.max(0, (ph - 36) / 2);      // centralizado verticalmente
         if (Math.abs(n.position.y - newY) < 0.5) return n;
         dirty = true;
         return { ...n, position: { ...n.position, y: newY } };
