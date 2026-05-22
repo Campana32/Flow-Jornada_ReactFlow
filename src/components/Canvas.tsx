@@ -95,6 +95,40 @@ const nodeColors = NODE_COLORS;
 const nodeLabels = NODE_LABELS;
 const nodeIcon = (type: string): React.ReactNode => <NodeIconImg type={type} />;
 
+/* ── localStorage helpers ── */
+const LS_NODES = "flow-saved-nodes";
+const LS_SEG   = "flow-saved-segmentacao";
+
+function stripIcons(nodes: SavedNode[]): object[] {
+  return nodes.map((n) => ({
+    ...n,
+    data: { ...n.data, icon: null },
+    branches: n.branches?.map((b) => ({ ...b, nodes: stripIcons(b.nodes) })),
+  }));
+}
+
+function restoreIcons(nodes: SavedNode[]): SavedNode[] {
+  return nodes.map((n) => ({
+    ...n,
+    data: { ...n.data, icon: nodeIcon(n.data.type) },
+    branches: n.branches?.map((b) => ({ ...b, nodes: restoreIcons(b.nodes) })),
+  }));
+}
+
+function loadNodes(): SavedNode[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LS_NODES);
+    if (raw) return restoreIcons(JSON.parse(raw) as SavedNode[]);
+  } catch {}
+  return [];
+}
+
+function loadSegmentacao(): string {
+  if (typeof window === "undefined") return "";
+  try { return localStorage.getItem(LS_SEG) ?? ""; } catch { return ""; }
+}
+
 /* ════════════════════════════════════════════════════════════════
    Inner canvas (inside ReactFlowProvider — can use RF hooks)
 ════════════════════════════════════════════════════════════════ */
@@ -136,6 +170,37 @@ function FlowCanvas() {
     ctx.pendingJornada,
     ctx.pendingBranchNode,
   ]);
+
+  /* Sync add-button y position to vertically center with their parent card */
+  const prevHeightsRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    const heights: Record<string, number> = {};
+    rfNodes.forEach((n) => {
+      const h = (n as { measured?: { height?: number } }).measured?.height;
+      if (h && n.type !== "addBtnNode") heights[n.id] = h;
+    });
+
+    const anyChanged = Object.keys(heights).some(
+      (id) => heights[id] !== prevHeightsRef.current[id],
+    );
+    if (!anyChanged) return;
+    prevHeightsRef.current = heights;
+
+    setRfNodes((prev) => {
+      let dirty = false;
+      const next = prev.map((n) => {
+        if (n.type !== "addBtnNode") return n;
+        const pid = (n.data as { _parentNodeId?: string })._parentNodeId;
+        const ph = pid ? heights[pid] : undefined;
+        if (!ph) return n;
+        const newY = Math.max(0, (ph - 36) / 2);
+        if (Math.abs(n.position.y - newY) < 0.5) return n;
+        dirty = true;
+        return { ...n, position: { ...n.position, y: newY } };
+      });
+      return dirty ? next : prev;
+    });
+  }, [rfNodes, setRfNodes]);
 
   /* Persist dragged positions to localStorage without triggering a full rebuild */
   const onNodeDragStop: NodeMouseHandler = useCallback((_evt, node) => {
@@ -199,8 +264,8 @@ function FlowCanvas() {
 ════════════════════════════════════════════════════════════════ */
 export default function Canvas() {
   const [activePanel, setActivePanel] = useState<ActivePanel>("none");
-  const [savedSegmentacao, setSavedSegmentacao] = useState<string>("");
-  const [savedNodes, setSavedNodes] = useState<SavedNode[]>([]);
+  const [savedSegmentacao, setSavedSegmentacao] = useState<string>(loadSegmentacao);
+  const [savedNodes, setSavedNodes] = useState<SavedNode[]>(loadNodes);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [pendingAguardar, setPendingAguardar] = useState(false);
   const [pendingJornada, setPendingJornada] = useState(false);
@@ -649,6 +714,13 @@ export default function Canvas() {
     onPendingBranchCancel: () => setPendingBranchNode(null),
   };
 
+  const handleSave = useCallback(() => {
+    try {
+      localStorage.setItem(LS_NODES, JSON.stringify(stripIcons(savedNodes)));
+      localStorage.setItem(LS_SEG, savedSegmentacao);
+    } catch {}
+  }, [savedNodes, savedSegmentacao]);
+
   return (
     <ReactFlowProvider>
       <CanvasCtx.Provider value={ctxValue}>
@@ -656,7 +728,7 @@ export default function Canvas() {
           {/* Top bar */}
           <div className="absolute top-[24px] left-[24px] right-[24px] flex items-start justify-between z-10 pointer-events-auto">
             <JourneyNameCard />
-            <ActionButtons />
+            <ActionButtons onSave={handleSave} />
           </div>
 
           {/* React Flow canvas */}

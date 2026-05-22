@@ -1,4 +1,5 @@
 "use client";
+import { useState, useCallback } from "react";
 import { useFocusMode } from "@/contexts/FocusModeContext";
 
 function IconFullscreen() {
@@ -33,9 +34,22 @@ function IconPublish() {
   );
 }
 
-export default function ActionButtons() {
+interface ActionButtonsProps {
+  onSave?: () => void;
+}
+
+export default function ActionButtons({ onSave }: ActionButtonsProps) {
   const { focusMode, toggle } = useFocusMode();
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = useCallback(() => {
+    onSave?.();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  }, [onSave]);
+
   return (
+    <div className="flex flex-col items-end gap-[8px]">
     <div className="flex flex-col items-end justify-center bg-bg-white border border-border-secondary rounded-[12px] px-[10px] py-[12px]">
       <div className="flex items-center gap-[8px]">
         {/* Modo foco */}
@@ -57,7 +71,7 @@ export default function ActionButtons() {
         </button>
 
         {/* Salvar */}
-        <button className="flex items-center gap-[4px] bg-brand-light border border-brand-border rounded-[8px] px-[12px] py-[8px] hover:opacity-90 transition-opacity">
+        <button onClick={handleSave} className="flex items-center gap-[4px] bg-brand-light border border-brand-border rounded-[8px] px-[12px] py-[8px] hover:opacity-90 transition-opacity">
           <IconSave />
           <span className="text-sm font-semibold text-brand whitespace-nowrap">Salvar</span>
         </button>
@@ -68,6 +82,20 @@ export default function ActionButtons() {
           <span className="text-sm font-semibold text-text-white whitespace-nowrap">Salvar e publicar</span>
         </button>
       </div>
+    </div>
+
+    {/* Toast de confirmação */}
+    <div
+      className={`flex items-center gap-[8px] bg-white border border-[#e8eaec] rounded-[10px] px-[14px] py-[10px] shadow-sm transition-all duration-300 ${
+        saved ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 pointer-events-none"
+      }`}
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="8" fill="#16a34a" />
+        <path d="M4.5 8.5l2.5 2.5 4.5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="text-sm font-medium text-[#12171d] whitespace-nowrap">Alterações salvas com sucesso</span>
+    </div>
     </div>
   );
 }

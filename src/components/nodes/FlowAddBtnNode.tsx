@@ -12,6 +12,7 @@ export interface FlowAddBtnNodeData {
   nodeId?: string;
   lastNonNegBi?: number;
   openBranchDropdownKey?: string | null;
+  _parentNodeId?: string;
 }
 
 function BranchDropdown({

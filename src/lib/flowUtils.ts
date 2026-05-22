@@ -129,12 +129,13 @@ function buildBranchNodes(
   edges: Edge[],
   branch: BranchChain,
   firstSourceId: string,
+  firstSourceWidth: number,
   startX: number,
   y: number,
   nodePositions: Record<string, { x: number; y: number }>,
   branchCtx: { parentNodeId: string; branchIdx: number },
   pendingBranchNode: PendingBranchNodeState | null,
-): { nodeIds: string[]; lastRight: number; prevId: string } {
+): { nodeIds: string[]; lastRight: number; prevId: string; lastNodeWidth: number } {
   const pos = (id: string, dx: number, dy: number) =>
     nodePositions[id] ?? { x: dx, y: dy };
 
@@ -142,6 +143,7 @@ function buildBranchNodes(
   let prevId = firstSourceId;
   const nodeIds: string[] = [];
   let lastRight = startX;
+  let lastNodeWidth = firstSourceWidth;
 
   for (const bn of branch.nodes) {
     const type = bn.data.type;
@@ -167,6 +169,7 @@ function buildBranchNodes(
     nodeIds.push(bn.id);
     prevId = bn.id;
     lastRight = x + w;
+    lastNodeWidth = w;
     x += w + NODE_GAP;
   }
 
@@ -197,10 +200,11 @@ function buildBranchNodes(
     });
     nodeIds.push(pendId);
     prevId = pendId;
-    lastRight = x + nodeWidthOf(pbn.type === "aguardar" ? "aguardar" : "jornadaOutra");
+    lastNodeWidth = nodeWidthOf(pbn.type === "aguardar" ? "aguardar" : "jornadaOutra");
+    lastRight = x + lastNodeWidth;
   }
 
-  return { nodeIds, lastRight, prevId };
+  return { nodeIds, lastRight, prevId, lastNodeWidth };
 }
 
 /* ── Main graph builder ── */
@@ -283,8 +287,8 @@ export function buildFlowGraph({
           const chainSrc = lastNonNegBi === 0 ? node.id : `${node.id}-seg-${lastNonNegBi}`;
           edges.push(chainEdge(chainSrc, "branch-chain", negId, "branch-chain-in", true));
 
-          const { nodeIds, lastRight, prevId: lastPrevId } = buildBranchNodes(
-            nodes, edges, branch, negId, effectiveBranchX, branchY,
+          const { nodeIds, prevId: lastPrevId, lastNodeWidth } = buildBranchNodes(
+            nodes, edges, branch, negId, SEGMENTACAO_CARD_WIDTH, effectiveBranchX, branchY,
             nodePositions, branchCtx, pendingBranchNode,
           );
 
@@ -297,9 +301,10 @@ export function buildFlowGraph({
             const addId = `add-end-${node.id}-${bi}`;
             nodes.push({
               id: addId, type: "addBtnNode",
-              position: pos(addId, lastRight + 72, branchY),
+              position: { x: lastNodeWidth + 72, y: 0 },
+              parentId: lastPrevId,
               draggable: false,
-              data: { label: "Adicionar nó", branchCtx },
+              data: { label: "Adicionar nó", branchCtx, _parentNodeId: lastPrevId },
             });
             edges.push(flowEdge(lastPrevId, addId, { isEmpty: true }));
           }
@@ -325,8 +330,8 @@ export function buildFlowGraph({
             edges.push(chainEdge(prevSegId, "branch-chain", segId, "branch-chain-in"));
           }
 
-          const { nodeIds, lastRight, prevId: lastPrevId } = buildBranchNodes(
-            nodes, edges, branch, segId, effectiveBranchX, branchY,
+          const { nodeIds, prevId: lastPrevId, lastNodeWidth } = buildBranchNodes(
+            nodes, edges, branch, segId, SEGMENTACAO_CARD_WIDTH, effectiveBranchX, branchY,
             nodePositions, branchCtx, pendingBranchNode,
           );
 
@@ -339,9 +344,10 @@ export function buildFlowGraph({
             const addId = `add-end-${node.id}-${bi}`;
             nodes.push({
               id: addId, type: "addBtnNode",
-              position: pos(addId, lastRight + 72, branchY),
+              position: { x: lastNodeWidth + 72, y: 0 },
+              parentId: lastPrevId,
               draggable: false,
-              data: { label: "Adicionar nó", branchCtx },
+              data: { label: "Adicionar nó", branchCtx, _parentNodeId: lastPrevId },
             });
             edges.push(flowEdge(lastPrevId, addId, { isEmpty: true }));
           }
@@ -408,8 +414,8 @@ export function buildFlowGraph({
 
         const branchNodeStartX = labelX + BRANCH_LABEL_WIDTH + NODE_GAP;
 
-        const { nodeIds, lastRight, prevId: lastPrevId } = buildBranchNodes(
-          nodes, edges, branch, labelId, branchNodeStartX, yo,
+        const { nodeIds, prevId: lastPrevId, lastNodeWidth } = buildBranchNodes(
+          nodes, edges, branch, labelId, BRANCH_LABEL_WIDTH, branchNodeStartX, yo,
           nodePositions, branchCtx, pendingBranchNode,
         );
 
@@ -422,9 +428,10 @@ export function buildFlowGraph({
           const addId = `add-end-${node.id}-${bi}`;
           nodes.push({
             id: addId, type: "addBtnNode",
-            position: pos(addId, lastRight + 72, yo),
+            position: { x: lastNodeWidth + 72, y: 0 },
+            parentId: lastPrevId,
             draggable: false,
-            data: { label: "Adicionar nó", branchCtx },
+            data: { label: "Adicionar nó", branchCtx, _parentNodeId: lastPrevId },
           });
           edges.push(flowEdge(lastPrevId, addId, { isEmpty: true }));
         }
@@ -449,9 +456,10 @@ export function buildFlowGraph({
         const addId = "add-main-end";
         nodes.push({
           id: addId, type: "addBtnNode",
-          position: pos(addId, nx + nodeWidthOf(type) + 72, 0),
+          position: { x: nodeWidthOf(type) + 72, y: 0 },
+          parentId: node.id,
           draggable: false,
-          data: { label: "Adicionar nó" },
+          data: { label: "Adicionar nó", _parentNodeId: node.id },
         });
         edges.push(flowEdge(node.id, addId, { isEmpty: true }));
       }
@@ -463,9 +471,10 @@ export function buildFlowGraph({
     const addId = "add-main-0";
     nodes.push({
       id: addId, type: "addBtnNode",
-      position: pos(addId, MAIN_FLOW_X_START + 72, 0),
+      position: { x: NODE_WIDTH + 72, y: 0 },
+      parentId: "entrada",
       draggable: false,
-      data: { label: "Adicionar nó", disabled: !nodeConfigured },
+      data: { label: "Adicionar nó", disabled: !nodeConfigured, _parentNodeId: "entrada" },
     });
     edges.push(flowEdge("entrada", addId, { isEmpty: true }));
   }
