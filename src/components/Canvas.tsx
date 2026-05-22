@@ -149,8 +149,7 @@ function FlowCanvas() {
         deleteKeyCode={null}
         minZoom={0.25}
         maxZoom={3}
-        fitView
-        fitViewOptions={{ padding: 0.25 }}
+        defaultViewport={{ x: 0, y: 200, zoom: 1 }}
         proOptions={{ hideAttribution: true }}
       >
         <Background
